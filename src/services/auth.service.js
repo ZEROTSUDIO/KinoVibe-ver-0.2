@@ -157,11 +157,18 @@ export const AuthService = {
     if (!navLinks) return;
 
     // Clean up existing dynamic user elements
-    document.querySelectorAll('.nav-user, .nav-login-link, .nav-admin-link').forEach(el => el.remove());
+    document.querySelectorAll('.nav-user, .nav-login-link, .nav-admin-link, .nav-profile-link').forEach(el => el.remove());
 
     if (user) {
       const profile = await this.getProfile();
       const isAdminUser = profile && profile.is_admin === true;
+
+      // Profile navigation link
+      const profileLink = document.createElement('a');
+      profileLink.href = 'profile.html';
+      profileLink.className = `nav-link nav-profile-link ${window.location.pathname.includes('profile.html') ? 'active' : ''}`;
+      profileLink.innerHTML = '👤 Profile';
+      navLinks.appendChild(profileLink);
 
       // If admin, inject Admin link before the user badge
       if (isAdminUser) {
@@ -172,12 +179,21 @@ export const AuthService = {
         navLinks.appendChild(adminLink);
       }
 
+      const avatarContent = profile?.avatar_url
+        ? (profile.avatar_url.startsWith('http') || profile.avatar_url.startsWith('/')
+            ? `<img src="${escapeHtml(profile.avatar_url)}" class="nav-avatar-img" alt="${escapeHtml(profile?.display_name || 'User')}">`
+            : `<span class="nav-avatar-emoji">${escapeHtml(profile.avatar_url)}</span>`)
+        : `<span class="nav-avatar-fallback">${escapeHtml((profile?.display_name || user.email || 'U')[0].toUpperCase())}</span>`;
+
       const userDiv = document.createElement('div');
       userDiv.className = 'nav-user';
       userDiv.innerHTML = `
-        <span class="nav-user-email" title="${escapeHtml(user.email)}">
-          ${isAdminUser ? '<span class="admin-badge">ADMIN</span> ' : ''}${escapeHtml(profile?.display_name || user.email)}
-        </span>
+        <a href="profile.html" class="nav-user-badge group" title="View your profile (${escapeHtml(user.email)})">
+          <span class="nav-avatar-wrap">${avatarContent}</span>
+          <span class="nav-user-name truncate">
+            ${isAdminUser ? '<span class="admin-badge">ADMIN</span> ' : ''}${escapeHtml(profile?.display_name || user.email.split('@')[0])}
+          </span>
+        </a>
         <button class="nav-signout-btn" id="nav-signout-btn">Sign Out</button>
       `;
       navLinks.appendChild(userDiv);

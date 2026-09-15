@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
           'matrix-story': resolve(__dirname, 'matrix-story.html'),
           'matrix-rare': resolve(__dirname, 'matrix-rare.html'),
           login: resolve(__dirname, 'login.html'),
+          profile: resolve(__dirname, 'profile.html'),
           admin: resolve(__dirname, 'admin.html'),
         }
       }
@@ -100,7 +101,7 @@ export default defineConfig(({ mode }) => {
 
             if (url.pathname === '/api/health') {
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ status: 'ok', dev: true, version: '0.2.0' }));
+              res.end(JSON.stringify({ status: 'ok', dev: true, version: '0.3.0' }));
               return;
             }
 

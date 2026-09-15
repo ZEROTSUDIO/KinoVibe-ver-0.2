@@ -1,7 +1,7 @@
-# 🎬 KinoVibe (v0.2)
+# 🎬 KinoVibe (v0.3)
 
-> **Personal & Community Cinematic Movie Review & Tier Ranking Platform**  
-> Rate films across 4 core criteria, apply personal biases, link live metadata via secure TMDB proxy, and sync your collection reliably to Supabase Cloud with PostgreSQL triggers, RLS security, and admin moderation.
+> **Personal & Community Cinematic Movie Review, Tier Ranking & Profile Platform**  
+> Rate films across 4 core criteria, apply personal biases, link live metadata via secure TMDB proxy, build your cinephile profile with social integrations (Letterboxd, X, Instagram, YouTube), and sync your collection reliably to Supabase Cloud with PostgreSQL triggers, RLS security, and admin moderation.
 
 ---
 
@@ -173,6 +173,7 @@ KinoVibe/
 ├── add.html                    # Add review form
 ├── edit.html                   # Edit review form
 ├── login.html                  # Authentication portal
+├── profile.html                # Cinephile profile & social links
 ├── admin.html                  # Moderation & analytics dashboard
 │
 ├── public/                     # Static assets served by Vite
@@ -186,11 +187,13 @@ KinoVibe/
 │   ├── services/               # API & data repository services
 │   │   ├── api.service.js
 │   │   ├── auth.service.js
+│   │   ├── profile.service.js  # Profile & socials data service
 │   │   ├── movie.service.js
 │   │   ├── tmdb.service.js
 │   │   └── admin.service.js
 │   ├── utils/                  # Core math & UI utilities
 │   │   ├── scoring.js
+│   │   ├── socials.js          # Social platforms config & normalizers
 │   │   └── ui.js
 │   └── pages/                  # Page-specific controllers
 │       ├── landing.js
@@ -200,6 +203,7 @@ KinoVibe/
 │       ├── tiers.js
 │       ├── matrix.js
 │       ├── login.js
+│       ├── profile.js          # Profile view & edit controller
 │       └── admin.js
 │
 ├── api/                        # Vercel serverless functions
@@ -210,21 +214,27 @@ KinoVibe/
 │
 └── supabase/
     └── migrations/
-        └── 001_v02_schema_and_rls.sql
+        ├── 001_v02_schema_and_rls.sql
+        └── 002_v03_profile_and_socials.sql
 ```
 
 ---
 
-## 📋 Release Notes — v0.2.1 (File & Folder Organization)
+## 📋 Release Notes — v0.3 (Profile System with Socials)
 
-- **Root Directory Cleanup**:
-  - Relocated all loose page JavaScript files (`landing.js`, `library.js`, `detail.js`, `form.js`, `tiers.js`, `matrix.js`, `login.js`, `tmdb.js`) into `src/pages/`.
-  - Moved static assets (`hero.jpeg`) into the standard Vite `public/` directory.
-  - Eliminated duplicate 82KB stylesheets (`style.css` in root and `src/input.css`), consolidating everything into `src/styles/main.css`.
-- **Modular ES Imports**:
-  - Refactored all page controllers to import directly from `src/services/` and `src/utils/` without relying on `window` global variables.
-  - Deduplicated utility logic (`escapeHtml`, `TIERS`) across pages.
-  - Cleaned up multiple script tags across all 9 HTML entry points to a single module entrypoint.
+- **Cinephile Profiles & Social Integrations**:
+  - Dedicated profile portal (`profile.html`) with public sharing (`?u=@username` or `?id=uuid`) and owner edit mode.
+  - First-class support for **Letterboxd**, plus X/Twitter, Instagram, YouTube, and personal website links.
+  - Automatic URL normalization converts handles (`@username`) or full links into verified, styled external badges with brand icons.
+  - Cinephile stats: Total films reviewed, overall average rating, S-tier masterpieces count, and top favorite genre.
+  - Personalized taste highlights: All-time favorite movie badge, primary genre, and custom bio.
+  - Customizable avatars: supports custom image links or one-click emoji presets (🍿, 🎬, 👑, 🎥, 🦇, 🛸, etc.) with real-time preview.
+- **Cross-Platform Integration**:
+  - Clickable avatar badge and "👤 Profile" link in desktop navbar and mobile bottom navigation across the entire app.
+  - Reviewer attribution card on movie detail pages (`view.html`) linking directly to the reviewer's profile.
+- **Database & Architecture**:
+  - Added [`002_v03_profile_and_socials.sql`](file:///d:/Wengdev/KinoVibe/supabase/migrations/002_v03_profile_and_socials.sql) with columns for bio, socials, favorite film/genre, and username indexing.
+  - Client services include graceful offline fallbacks and error handling.
 
 ---
 

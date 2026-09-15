@@ -272,4 +272,101 @@ export class MovieService {
     });
     return Array.from(set).sort();
   }
+
+  /**
+   * Fetch movies for a specific user (public or all if owner)
+   */
+  static async getByUserId(userId, { publicOnly = true, sortBy = 'highest' } = {}) {
+    if (!userId) return [];
+    const currentUser = await AuthService.getUser();
+    const isOwner = currentUser && currentUser.id === userId;
+
+    try {
+      let query = supabase
+        .from('movies')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (publicOnly && !isOwner) {
+        query = query.eq('is_public', true);
+      }
+
+      if (sortBy === 'highest') {
+        query = query.order('final_score', { ascending: false });
+      } else if (sortBy === 'lowest') {
+        query = query.order('final_score', { ascending: true });
+      } else if (sortBy === 'title') {
+        query = query.order('title', { ascending: true });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.warn('getByUserId error:', error.message);
+        if (isOwner) return this._loadLocal(userId);
+        return [];
+      }
+
+      if (data) {
+        return data.map(r => this._mapFromDB(r));
+      }
+    } catch (err) {
+      console.warn('getByUserId exception:', err);
+      if (isOwner) return this._loadLocal(userId);
+    }
+    return [];
+  }
+
+  /**
+   * Calculate stats for a given user
+   */
+  static async getUserStats(userId) {
+    const movies = await this.getByUserId(userId, { publicOnly: false });
+    const totalReviews = movies.length;
+
+    let avgScore = 0;
+    let sTierCount = 0;
+    const genreCounts = {};
+    const tierCounts = { S: 0, A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
+
+    if (totalReviews > 0) {
+      const sum = movies.reduce((acc, m) => acc + (Number(m.finalScore) || 0), 0);
+      avgScore = Math.round((sum / totalReviews) * 10) / 10;
+
+      movies.forEach(m => {
+        const s = Number(m.finalScore) || 0;
+        if (s >= 9.0) { tierCounts.S++; sTierCount++; }
+        else if (s >= 8.0) tierCounts.A++;
+        else if (s >= 7.0) tierCounts.B++;
+        else if (s >= 6.0) tierCounts.C++;
+        else if (s >= 5.0) tierCounts.D++;
+        else if (s >= 4.0) tierCounts.E++;
+        else tierCounts.F++;
+
+        (m.genres || []).forEach(g => {
+          if (typeof g === 'string') {
+            genreCounts[g] = (genreCounts[g] || 0) + 1;
+          }
+        });
+      });
+    }
+
+    let topGenre = '—';
+    let maxGenreCount = 0;
+    Object.entries(genreCounts).forEach(([genre, count]) => {
+      if (count > maxGenreCount) {
+        maxGenreCount = count;
+        topGenre = genre;
+      }
+    });
+
+    return {
+      totalReviews,
+      avgScore,
+      sTierCount,
+      topGenre,
+      tierCounts
+    };
+  }
 }

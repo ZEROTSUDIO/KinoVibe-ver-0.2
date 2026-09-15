@@ -1,6 +1,7 @@
 // KinoVibe Movie Detail Page Controller
 import { AuthService } from '../services/auth.service.js';
 import { MovieService } from '../services/movie.service.js';
+import { ProfileService } from '../services/profile.service.js';
 import { calcScores, getScoreLevel, formatScore, getTierForScore } from '../utils/scoring.js';
 import { escapeHtml, Toast } from '../utils/ui.js';
 
@@ -124,17 +125,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (matrixCoords) matrixCoords.textContent = `Quality ${craft.toFixed(1)} · Entertainment ${fun.toFixed(1)}`;
 
   // Reviewer Signature Card
-  const profile = await AuthService.getProfile();
+  // Reviewer Signature Card & Link to Profile
+  const reviewerProfile = movie.userId ? await ProfileService.getProfileById(movie.userId) : await AuthService.getProfile();
   const isOwner = !movie.userId || movie.userId === user.id;
-  const reviewerName = (!isOwner) ? 'Community Member' : (profile?.display_name || user.email?.split('@')[0] || 'You');
-  const initial = (reviewerName.replace(/^@/, '').charAt(0) || 'U').toUpperCase();
+  const reviewerDisplayName = reviewerProfile?.displayName || reviewerProfile?.display_name || (isOwner ? (user.email?.split('@')[0] || 'You') : 'Community Member');
+  const reviewerHandle = reviewerProfile?.username ? `@${reviewerProfile.username}` : (reviewerDisplayName.startsWith('@') ? reviewerDisplayName : `@${reviewerDisplayName}`);
 
+  const reviewerCard = document.getElementById('reviewer-card');
   const reviewerAvatar = document.getElementById('reviewer-avatar');
   const reviewerNameEl = document.getElementById('reviewer-name');
   const reviewDateEl = document.getElementById('review-date');
 
-  if (reviewerAvatar) reviewerAvatar.textContent = initial;
-  if (reviewerNameEl) reviewerNameEl.textContent = reviewerName.startsWith('@') ? reviewerName : `@${reviewerName}`;
+  if (reviewerCard && (movie.userId || reviewerProfile?.id)) {
+    reviewerCard.href = `profile.html?id=${movie.userId || reviewerProfile?.id}`;
+    reviewerCard.title = `View ${reviewerDisplayName}'s Profile`;
+  }
+
+  if (reviewerAvatar) {
+    const avatarVal = reviewerProfile?.avatarUrl || reviewerProfile?.avatar_url;
+    if (avatarVal) {
+      if (avatarVal.startsWith('http://') || avatarVal.startsWith('https://') || avatarVal.startsWith('/')) {
+        reviewerAvatar.innerHTML = `<img src="${escapeHtml(avatarVal)}" class="w-full h-full object-cover rounded-full">`;
+      } else {
+        reviewerAvatar.textContent = avatarVal;
+      }
+    } else {
+      reviewerAvatar.textContent = (reviewerDisplayName.replace(/^@/, '').charAt(0) || 'U').toUpperCase();
+    }
+  }
+
+  if (reviewerNameEl) reviewerNameEl.textContent = reviewerHandle;
   if (reviewDateEl) {
     if (movie.createdAt) {
       const dateObj = new Date(movie.createdAt);

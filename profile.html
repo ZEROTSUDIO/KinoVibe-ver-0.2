@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>User Profile — KinoVibe</title>
+  <meta name="description" content="Cinephile movie review profile, ratings, tier stats, and social links.">
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+
+  <!-- Universal Desktop Navbar -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="library.html" class="nav-brand" title="KinoVibe Library">
+        <span class="brand-kino">Kino</span><span class="brand-vibe">Vibe</span>
+      </a>
+      <div class="nav-links">
+        <a href="library.html" class="nav-link">Library</a>
+        <a href="tiers.html" class="nav-link">Tiers</a>
+        <a href="matrix.html" class="nav-link">Matrix</a>
+        <a href="add.html" class="nav-link nav-add">+ Add Movie</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page-container" style="max-width:1060px; padding-bottom: 5rem;">
+    <!-- Loading Shimmer State -->
+    <div id="profile-loading" class="fade-in text-center py-16">
+      <div class="inline-block w-8 h-8 border-2 border-kino-accent border-t-transparent rounded-full animate-spin mb-3"></div>
+      <div class="text-kino-muted text-sm">Loading cinephile profile...</div>
+    </div>
+
+    <!-- Profile Not Found State -->
+    <div id="profile-not-found" class="empty-state hidden">
+      <div class="empty-icon">👤</div>
+      <div class="empty-title">Profile Not Found</div>
+      <div class="empty-subtitle">We couldn't locate a cinephile matching this user ID or username.</div>
+      <a href="library.html" class="btn-primary mt-4" style="text-decoration:none">Back to Library</a>
+    </div>
+
+    <!-- Main Profile Content Container -->
+    <div id="profile-content" class="hidden fade-in">
+      
+      <!-- Profile Header Hero Card -->
+      <header class="profile-hero-card">
+        <div class="profile-hero-backdrop"></div>
+        <div class="profile-hero-inner">
+          <div class="profile-avatar-container">
+            <div class="profile-avatar" id="profile-avatar">
+              <span class="profile-avatar-char">?</span>
+            </div>
+          </div>
+
+          <div class="profile-details">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h1 class="profile-name" id="profile-display-name">—</h1>
+                <div class="profile-handle-row">
+                  <span class="profile-handle" id="profile-username">@—</span>
+                  <span class="profile-admin-badge hidden" id="profile-admin-badge">🛡️ Moderator</span>
+                  <span class="profile-joined text-kino-muted text-xs" id="profile-joined-date">Joined —</span>
+                </div>
+              </div>
+
+              <!-- Action Buttons (Edit & Share) -->
+              <div class="flex items-center gap-2">
+                <button type="button" class="btn-secondary text-xs sm:text-sm hidden" id="btn-edit-profile">
+                  <span>✏️</span> Edit Profile
+                </button>
+                <button type="button" class="btn-secondary text-xs sm:text-sm" id="btn-share-profile" title="Copy profile link">
+                  <span>🔗</span> Share
+                </button>
+              </div>
+            </div>
+
+            <!-- Bio -->
+            <p class="profile-bio" id="profile-bio"></p>
+
+            <!-- Cinephile Taste Pills -->
+            <div class="profile-taste-row hidden" id="profile-taste-row">
+              <div class="taste-chip hidden" id="chip-fav-movie">
+                <span class="taste-icon">🍿</span>
+                <span class="taste-label">All-time Favorite:</span>
+                <strong class="taste-val" id="profile-fav-movie">—</strong>
+              </div>
+              <div class="taste-chip hidden" id="chip-fav-genre">
+                <span class="taste-icon">🎭</span>
+                <span class="taste-label">Favorite Genre:</span>
+                <strong class="taste-val" id="profile-fav-genre">—</strong>
+              </div>
+            </div>
+
+            <!-- Social Links Row -->
+            <div class="profile-socials-row" id="profile-socials-row">
+              <!-- Dynamically rendered social pills (Letterboxd, Twitter, etc.) -->
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Cinephile Review Stats Grid -->
+      <section class="stat-grid mt-6" id="profile-stat-grid">
+        <div class="stat-box">
+          <div class="stat-num text-purple-400" id="stat-total-reviews">0</div>
+          <div class="stat-label">Films Logged</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num text-amber-400" id="stat-avg-score">—</div>
+          <div class="stat-label">Average Rating</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num text-emerald-400" id="stat-s-tier-count">0</div>
+          <div class="stat-label">S-Tier Masterpieces</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num text-sky-400" id="stat-top-genre">—</div>
+          <div class="stat-label">Top Genre</div>
+        </div>
+      </section>
+
+      <!-- Reviews Showcase Section -->
+      <section class="mt-10">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-6 pb-2 border-b border-white/[0.08]">
+          <div class="flex items-center gap-4">
+            <h2 class="text-xl font-bold text-white tracking-tight">Film Reviews</h2>
+            <div class="flex items-center gap-1 bg-white/[0.04] p-1 rounded-full border border-white/[0.08] text-xs">
+              <button type="button" class="px-3 py-1 rounded-full font-medium transition active text-white bg-kino-accent" id="tab-reviews-top">Top Rated</button>
+              <button type="button" class="px-3 py-1 rounded-full font-medium transition text-kino-secondary hover:text-white" id="tab-reviews-all">All Reviews</button>
+            </div>
+          </div>
+          <div class="text-xs text-kino-muted" id="reviews-count-badge">0 reviews</div>
+        </div>
+
+        <!-- Movie Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="profile-movies-grid">
+          <!-- Populated by profile.js -->
+        </div>
+
+        <!-- Empty Reviews State -->
+        <div class="empty-state hidden" id="profile-empty-reviews">
+          <div class="empty-icon">🎬</div>
+          <div class="empty-title">No reviews yet</div>
+          <div class="empty-subtitle">This cinephile hasn't shared any public film reviews yet.</div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Edit Profile Modal Dialog -->
+  <div class="modal-overlay" id="modal-edit-profile">
+    <div class="modal-card max-w-xl text-left">
+      <div class="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+        <h3 class="text-lg font-bold text-white m-0">Edit Cinephile Profile</h3>
+        <button type="button" class="text-kino-muted hover:text-white text-lg p-1" id="btn-close-modal">✕</button>
+      </div>
+
+      <form id="form-edit-profile" class="space-y-4 pt-4">
+        
+        <!-- Display Name & Username -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="form-label" for="edit-display-name">Display Name</label>
+            <input type="text" id="edit-display-name" class="form-input" placeholder="e.g. Martin Scorsese" required maxlength="50">
+          </div>
+          <div>
+            <label class="form-label" for="edit-username">Username Handle</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-kino-muted text-sm">@</span>
+              <input type="text" id="edit-username" class="form-input pl-7" placeholder="filmbuff" required maxlength="24" pattern="[a-zA-Z0-9_]{3,24}" title="3-24 alphanumeric characters or underscores">
+            </div>
+          </div>
+        </div>
+
+        <!-- Bio -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="form-label mb-0" for="edit-bio">Bio / Cinephile Statement</label>
+            <span class="text-xs text-kino-muted" id="edit-bio-count">0 / 280</span>
+          </div>
+          <textarea id="edit-bio" class="form-input" rows="3" placeholder="Tell other cinephiles about your taste in cinema..." maxlength="280"></textarea>
+        </div>
+
+        <!-- Avatar URL & Quick Presets -->
+        <div>
+          <label class="form-label" for="edit-avatar-url">Avatar (Image URL or Emoji)</label>
+          <div class="flex gap-2 mb-2">
+            <input type="text" id="edit-avatar-url" class="form-input flex-1" placeholder="https://... image link or pick emoji below">
+            <div class="w-10 h-10 rounded-full bg-white/[0.06] border border-white/[0.12] flex items-center justify-center overflow-hidden flex-shrink-0" id="edit-avatar-preview">
+              🍿
+            </div>
+          </div>
+
+          <!-- Emoji Avatar Quick Selector -->
+          <div class="flex flex-wrap gap-1.5 items-center pt-1">
+            <span class="text-xs text-kino-muted mr-1">Presets:</span>
+            <button type="button" class="avatar-preset-btn" data-emoji="🍿">🍿</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="🎬">🎬</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="👑">👑</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="🎥">🎥</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="🦇">🦇</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="🛸">🛸</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="📼">📼</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="🎞️">🎞️</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="🎭">🎭</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="🌌">🌌</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="☕">☕</button>
+            <button type="button" class="avatar-preset-btn" data-emoji="🌟">🌟</button>
+          </div>
+        </div>
+
+        <!-- Favorite Film & Genre -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div>
+            <label class="form-label" for="edit-fav-movie">All-Time Favorite Film</label>
+            <input type="text" id="edit-fav-movie" class="form-input" placeholder="e.g. 2001: A Space Odyssey" maxlength="60">
+          </div>
+          <div>
+            <label class="form-label" for="edit-fav-genre">Favorite Genre</label>
+            <input type="text" id="edit-fav-genre" class="form-input" placeholder="e.g. Psychological Thriller" maxlength="40">
+          </div>
+        </div>
+
+        <!-- Social Media Links (Letterboxd, X, Instagram, YouTube, Website) -->
+        <div class="pt-2 border-t border-white/[0.08]">
+          <div class="text-xs font-semibold text-kino-accent-light uppercase tracking-wider mb-2">Socials & External Profiles</div>
+
+          <div class="space-y-2.5">
+            <!-- Letterboxd -->
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs font-medium text-emerald-400 flex items-center gap-1.5 flex-shrink-0">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Letterboxd
+              </span>
+              <input type="text" id="edit-social-letterboxd" class="form-input py-1.5 text-xs" placeholder="username or letterboxd.com/username">
+            </div>
+
+            <!-- X / Twitter -->
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs font-medium text-white flex items-center gap-1.5 flex-shrink-0">
+                <span class="w-2 h-2 rounded-full bg-white"></span> X / Twitter
+              </span>
+              <input type="text" id="edit-social-twitter" class="form-input py-1.5 text-xs" placeholder="@username or x.com/username">
+            </div>
+
+            <!-- Instagram -->
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs font-medium text-rose-400 flex items-center gap-1.5 flex-shrink-0">
+                <span class="w-2 h-2 rounded-full bg-rose-400"></span> Instagram
+              </span>
+              <input type="text" id="edit-social-instagram" class="form-input py-1.5 text-xs" placeholder="@username or instagram.com/username">
+            </div>
+
+            <!-- YouTube -->
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs font-medium text-red-400 flex items-center gap-1.5 flex-shrink-0">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span> YouTube
+              </span>
+              <input type="text" id="edit-social-youtube" class="form-input py-1.5 text-xs" placeholder="@channel or channel URL">
+            </div>
+
+            <!-- Personal Website -->
+            <div class="flex items-center gap-2">
+              <span class="w-24 text-xs font-medium text-purple-300 flex items-center gap-1.5 flex-shrink-0">
+                <span class="w-2 h-2 rounded-full bg-purple-400"></span> Website
+              </span>
+              <input type="url" id="edit-social-website" class="form-input py-1.5 text-xs" placeholder="https://yourwebsite.com">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions pt-3 border-t border-white/[0.08]">
+          <button type="button" class="btn-secondary" id="btn-cancel-edit">Cancel</button>
+          <button type="submit" class="btn-primary" id="btn-save-profile">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-kino-surface/95 backdrop-blur-lg border-t border-white/[0.08] px-4 py-2 flex justify-around items-center">
+    <a href="library.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">🎬</span>
+      <span>Library</span>
+    </a>
+    <a href="tiers.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">🏆</span>
+      <span>Tiers</span>
+    </a>
+    <a href="matrix.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">🧭</span>
+      <span>Matrix</span>
+    </a>
+    <a href="add.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">➕</span>
+      <span>Add</span>
+    </a>
+    <a href="profile.html" class="flex flex-col items-center gap-1 text-xs text-kino-accent-light font-semibold">
+      <span class="text-base">👤</span>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+  <!-- Scripts -->
+  <script type="module" src="/src/pages/profile.js"></script>
+</body>
+</html>
