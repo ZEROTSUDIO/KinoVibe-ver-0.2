@@ -2,7 +2,8 @@
 import { AuthService } from '../services/auth.service.js';
 import { MovieService } from '../services/movie.service.js';
 import { TIERS, calcScores, formatScore, getScoreLevel, getTierForScore } from '../utils/scoring.js';
-import { escapeHtml } from '../utils/ui.js';
+import { escapeHtml, Toast } from '../utils/ui.js';
+import { ExportImageUtil } from '../utils/export-image.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Require login — redirect if not authenticated
@@ -218,4 +219,91 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   renderTagFilterBar();
   setView(currentView);
+
+  // ─── Export Image Card ─────────────────────────────────
+  const btnExport = document.getElementById('btn-export-tier-image');
+  const modalExport = document.getElementById('modal-export-image');
+  const btnCloseExport = document.getElementById('btn-close-export-modal');
+  const exportPreviewImg = document.getElementById('export-preview-img');
+  const exportSpinner = document.getElementById('export-loading-spinner');
+  const btnCopyCard = document.getElementById('btn-copy-card');
+  const btnDownloadCard = document.getElementById('btn-download-card');
+  const formatButtons = document.querySelectorAll('#export-format-selector .aspect-pill');
+
+  let currentExportFormat = 'square';
+  let activeCanvas = null;
+
+  async function updateExportPreview() {
+    if (!modalExport || !modalExport.classList.contains('active')) return;
+
+    if (exportSpinner) exportSpinner.classList.remove('hidden');
+    if (exportPreviewImg) exportPreviewImg.classList.add('hidden');
+
+    try {
+      const filtered = getFilteredMovies();
+      const tierMap = buildTierMap(filtered);
+      const profile = await AuthService.getProfile();
+      const userName = profile?.username || profile?.displayName || user.email?.split('@')[0] || 'Cinephile';
+      const activeTag = activeTags.size === 1 ? [...activeTags][0] : '';
+
+      activeCanvas = await ExportImageUtil.renderTierListCanvas({
+        tierMap,
+        userName,
+        filterTag: activeTag,
+        format: currentExportFormat
+      });
+
+      if (exportPreviewImg && activeCanvas) {
+        exportPreviewImg.src = activeCanvas.toDataURL('image/png');
+        exportPreviewImg.classList.remove('hidden');
+      }
+    } catch (err) {
+      console.error('Failed to render tier card export:', err);
+      Toast.error('Could not generate card preview.');
+    } finally {
+      if (exportSpinner) exportSpinner.classList.add('hidden');
+    }
+  }
+
+  btnExport?.addEventListener('click', () => {
+    modalExport?.classList.add('active');
+    updateExportPreview();
+  });
+
+  btnCloseExport?.addEventListener('click', () => {
+    modalExport?.classList.remove('active');
+  });
+
+  modalExport?.addEventListener('click', (e) => {
+    if (e.target === modalExport) modalExport.classList.remove('active');
+  });
+
+  formatButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      formatButtons.forEach(b => {
+        b.className = 'aspect-pill px-3 py-1 text-xs rounded-full border border-white/10 text-kino-secondary hover:text-white font-medium';
+      });
+      btn.className = 'aspect-pill px-3 py-1 text-xs rounded-full border border-white/10 bg-kino-accent text-white font-medium';
+      currentExportFormat = btn.dataset.format || 'square';
+      updateExportPreview();
+    });
+  });
+
+  btnDownloadCard?.addEventListener('click', () => {
+    if (!activeCanvas) return;
+    const tagSuffix = activeTags.size === 1 ? `-${[...activeTags][0]}` : '';
+    ExportImageUtil.downloadCanvas(activeCanvas, `kinovibe-tier-list${tagSuffix}-${currentExportFormat}.png`);
+    Toast.success('Card image downloaded!');
+  });
+
+  btnCopyCard?.addEventListener('click', async () => {
+    if (!activeCanvas) return;
+    try {
+      await ExportImageUtil.copyCanvasToClipboard(activeCanvas);
+      Toast.success('Image copied to clipboard! Paste it directly in Twitter or Discord.');
+    } catch (err) {
+      console.warn('Copy to clipboard error:', err);
+      Toast.error('Clipboard image copy not supported in this browser. Use Download instead.');
+    }
+  });
 });

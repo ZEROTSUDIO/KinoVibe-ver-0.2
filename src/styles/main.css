@@ -4759,6 +4759,31 @@ button.footer-back-to-top {
   background: rgba(124, 58, 237, 0.08);
 }
 
+/* Shareable Export Card & Aspect Pills */
+.aspect-pill {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aspect-pill:hover {
+  border-color: var(--accent-light);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
 
 
 

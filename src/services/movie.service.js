@@ -369,4 +369,134 @@ export class MovieService {
       tierCounts
     };
   }
+
+  /**
+   * Batch insert movies (e.g. from Letterboxd import)
+   */
+  static async batchInsert(moviesArray, onProgress = null) {
+    const user = await AuthService.getUser();
+    if (!user) throw new Error('You must be signed in to import movies.');
+
+    const userId = user.id;
+    const insertedRecords = [];
+    const chunkSize = 50;
+
+    for (let i = 0; i < moviesArray.length; i += chunkSize) {
+      const chunk = moviesArray.slice(i, i + chunkSize);
+      const payloads = chunk.map(data => {
+        const s = Number(data.storyScore ?? data.finalScore ?? 7.0);
+        const v = Number(data.visualScore ?? data.finalScore ?? 7.0);
+        const a = Number(data.actionScore ?? data.finalScore ?? 7.0);
+        const f = Number(data.funScore ?? data.finalScore ?? 7.0);
+        const biases = Array.isArray(data.biases) ? data.biases : [];
+        const calc = calcScores(s, v, a, f, biases);
+
+        let createdAt = new Date().toISOString();
+        if (data.watchedDate) {
+          const parsedDate = new Date(data.watchedDate);
+          if (!isNaN(parsedDate.getTime())) {
+            createdAt = parsedDate.toISOString();
+          }
+        }
+
+        return {
+          title: (data.title || '').trim(),
+          year: data.year || null,
+          poster_url: data.posterUrl || '',
+          backdrop_url: data.backdropUrl || '',
+          overview: data.overview || '',
+          genres: data.genres || [],
+          runtime: data.runtime || null,
+          tmdb_id: data.tmdbId || null,
+          review_text: data.reviewText || '',
+          story_score: s,
+          visual_score: v,
+          action_score: a,
+          fun_score: f,
+          biases,
+          tags: (data.tags || []).map(t => t.trim().toLowerCase()),
+          base_score: calc.base,
+          final_score: calc.final,
+          is_public: data.isPublic !== false,
+          status: data.status || 'completed',
+          user_id: userId,
+          created_at: createdAt,
+          updated_at: new Date().toISOString()
+        };
+      });
+
+      const { data, error } = await supabase
+        .from('movies')
+        .insert(payloads)
+        .select();
+
+      if (error) {
+        console.error('Batch insert error chunk:', error.message);
+        throw error;
+      }
+
+      if (data) {
+        const mapped = data.map(r => this._mapFromDB(r));
+        insertedRecords.push(...mapped);
+      }
+
+      if (typeof onProgress === 'function') {
+        onProgress(Math.min(i + chunkSize, moviesArray.length), moviesArray.length);
+      }
+    }
+
+    // Refresh local cache
+    const existing = this._loadLocal(userId);
+    const combined = [...insertedRecords, ...existing];
+    this._saveLocal(userId, combined);
+
+    return insertedRecords;
+  }
+
+  /**
+   * Fetch public community feed across all users
+   */
+  static async getPublicFeed({ sortBy = 'newest', minScore = null, genre = null, limit = 24, page = 0 } = {}) {
+    try {
+      let query = supabase
+        .from('movies')
+        .select('*')
+        .eq('is_public', true);
+
+      if (minScore !== null && minScore !== undefined) {
+        query = query.gte('final_score', minScore);
+      }
+
+      if (sortBy === 'highest') {
+        query = query.order('final_score', { ascending: false });
+      } else if (sortBy === 'lowest') {
+        query = query.order('final_score', { ascending: true });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      const from = page * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('getPublicFeed error:', error.message);
+        return [];
+      }
+
+      let movies = (data || []).map(r => this._mapFromDB(r));
+
+      // Filter by genre in client if requested
+      if (genre && genre !== '__all__') {
+        const genreLower = genre.toLowerCase();
+        movies = movies.filter(m => (m.genres || []).some(g => String(g).toLowerCase().includes(genreLower)));
+      }
+
+      return movies;
+    } catch (err) {
+      console.error('getPublicFeed exception:', err);
+      return [];
+    }
+  }
 }

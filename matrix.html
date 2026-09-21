@@ -35,6 +35,10 @@
           <span>🏆</span><span>Tier List ↗</span>
         </a>
 
+        <button type="button" class="matrix-filter-btn inline-flex items-center gap-1.5" id="btn-export-matrix-image" title="Export as shareable image card">
+          <span>📸</span><span>Export Card</span>
+        </button>
+
         <!-- Search -->
         <div class="matrix-search-box">
           <input type="text" id="matrix-search" class="form-input text-xs py-1.5 px-3 rounded-full bg-white/[0.04] border border-white/[0.08] focus:border-kino-accent outline-none" placeholder="Search film on matrix...">
@@ -167,6 +171,42 @@
     </div>
   </main>
 
+  <!-- Export Image Modal Dialog -->
+  <div class="modal-overlay" id="modal-export-image">
+    <div class="modal-card max-w-xl text-left">
+      <div class="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+        <div>
+          <h3 class="text-lg font-bold text-white m-0">📸 Shareable Card Export</h3>
+          <p class="text-xs text-kino-muted m-0 mt-0.5">High-resolution graphic for Instagram, Twitter/X, and Discord</p>
+        </div>
+        <button type="button" class="text-kino-muted hover:text-white text-lg p-1" id="btn-close-export-modal">✕</button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <!-- Aspect Ratio Selection -->
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-kino-muted uppercase tracking-wider">Format:</span>
+          <div class="flex gap-1.5" id="export-format-selector">
+            <button type="button" class="aspect-pill px-3 py-1 text-xs rounded-full border border-white/10 bg-kino-accent text-white font-medium" data-format="square">1:1 Square</button>
+            <button type="button" class="aspect-pill px-3 py-1 text-xs rounded-full border border-white/10 text-kino-secondary hover:text-white font-medium" data-format="story">9:16 Story</button>
+            <button type="button" class="aspect-pill px-3 py-1 text-xs rounded-full border border-white/10 text-kino-secondary hover:text-white font-medium" data-format="landscape">Wide 16:9</button>
+          </div>
+        </div>
+
+        <!-- Live Canvas Preview Container -->
+        <div class="relative bg-black/50 border border-white/[0.08] rounded-kino p-2 flex items-center justify-center min-h-[260px] max-h-[420px] overflow-hidden" id="export-preview-box">
+          <div class="spinner" id="export-loading-spinner"></div>
+          <img id="export-preview-img" class="max-h-[380px] max-w-full object-contain rounded shadow-lg hidden" alt="Matrix Card Preview">
+        </div>
+      </div>
+
+      <div class="modal-actions pt-3 border-t border-white/[0.08]">
+        <button type="button" class="btn-secondary" id="btn-copy-card">📋 Copy Image</button>
+        <button type="button" class="btn-primary" id="btn-download-card">📥 Download PNG</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Site Footer -->
   <footer class="app-footer">
     <div class="footer-inner">
@@ -187,6 +227,7 @@
               <li><a href="library.html" class="footer-link">Library</a></li>
               <li><a href="tiers.html" class="footer-link">Tier List</a></li>
               <li><a href="matrix.html" class="footer-link">Vibe Matrix</a></li>
+              <li><a href="community.html" class="footer-link">Community</a></li>
               <li><a href="add.html" class="footer-link">+ Add Movie</a></li>
             </ul>
           </div>
@@ -194,6 +235,7 @@
           <div>
             <div class="footer-col-title">Navigation</div>
             <ul class="footer-links-list">
+              <li><a href="profile.html" class="footer-link">Profile</a></li>
               <li><a href="index.html" class="footer-link">Home / About</a></li>
               <li><a href="admin.html" class="footer-link">Admin Portal</a></li>
               <li><button type="button" class="footer-link footer-back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Back to Top</button></li>
@@ -214,7 +256,7 @@
   </footer>
 
   <!-- Mobile Bottom Navigation Bar -->
-  <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-kino-surface/95 backdrop-blur-lg border-t border-white/[0.08] px-4 py-2 flex justify-around items-center">
+  <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-kino-surface/95 backdrop-blur-lg border-t border-white/[0.08] px-3 py-2 flex justify-around items-center">
     <a href="library.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
       <span class="text-base">🎬</span>
       <span>Library</span>
@@ -227,9 +269,13 @@
       <span class="text-base">🧭</span>
       <span>Matrix</span>
     </a>
-    <a href="add.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
-      <span class="text-base">➕</span>
-      <span>Add</span>
+    <a href="community.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">🌐</span>
+      <span>Feed</span>
+    </a>
+    <a href="profile.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">👤</span>
+      <span>Profile</span>
     </a>
   </nav>
 

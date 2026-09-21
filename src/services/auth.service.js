@@ -157,11 +157,18 @@ export const AuthService = {
     if (!navLinks) return;
 
     // Clean up existing dynamic user elements
-    document.querySelectorAll('.nav-user, .nav-login-link, .nav-admin-link, .nav-profile-link').forEach(el => el.remove());
+    document.querySelectorAll('.nav-user, .nav-login-link, .nav-admin-link, .nav-profile-link, .nav-community-link').forEach(el => el.remove());
 
     if (user) {
       const profile = await this.getProfile();
       const isAdminUser = profile && profile.is_admin === true;
+
+      // Community navigation link
+      const communityLink = document.createElement('a');
+      communityLink.href = 'community.html';
+      communityLink.className = `nav-link nav-community-link ${window.location.pathname.includes('community.html') ? 'active' : ''}`;
+      communityLink.innerHTML = '🌐 Community';
+      navLinks.appendChild(communityLink);
 
       // Profile navigation link
       const profileLink = document.createElement('a');

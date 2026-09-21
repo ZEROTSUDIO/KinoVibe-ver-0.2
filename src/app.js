@@ -5,6 +5,9 @@ import { ProfileService } from './services/profile.service.js';
 import { calcScores, getScoreLevel, formatScore, TIERS } from './utils/scoring.js';
 import { escapeHtml, Toast, showConfirmModal, Skeleton } from './utils/ui.js';
 import { SOCIAL_PLATFORMS, normalizeSocialUrl, copyProfileShareLink } from './utils/socials.js';
+import { CSVUtil } from './utils/csv.js';
+import { ImportService } from './services/import.service.js';
+import { ExportImageUtil } from './utils/export-image.js';
 
 // Expose on window for backwards-compatibility
 if (typeof window !== 'undefined') {
@@ -12,6 +15,9 @@ if (typeof window !== 'undefined') {
   window.Auth = AuthService;
   window.MovieStore = MovieService;
   window.ProfileService = ProfileService;
+  window.ImportService = ImportService;
+  window.ExportImageUtil = ExportImageUtil;
+  window.CSVUtil = CSVUtil;
   window.calcScores = calcScores;
   window.getScoreLevel = getScoreLevel;
   window.formatScore = formatScore;
@@ -31,6 +37,9 @@ export {
   MovieService,
   MovieService as MovieStore,
   ProfileService,
+  ImportService,
+  ExportImageUtil,
+  CSVUtil,
   calcScores,
   getScoreLevel,
   formatScore,

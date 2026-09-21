@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
           'matrix-rare': resolve(__dirname, 'matrix-rare.html'),
           login: resolve(__dirname, 'login.html'),
           profile: resolve(__dirname, 'profile.html'),
+          community: resolve(__dirname, 'community.html'),
           admin: resolve(__dirname, 'admin.html'),
         }
       }

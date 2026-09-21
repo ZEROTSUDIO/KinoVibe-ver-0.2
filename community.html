@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KinoVibe — Cinephile Community Feed</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌐</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body class="bg-kino-base text-kino-text font-sans antialiased min-h-screen flex flex-col selection:bg-kino-accent selection:text-white">
+
+  <!-- Universal Top Navbar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="library.html" class="nav-brand">
+        <span class="brand-kino">Kino</span><span class="brand-vibe">Vibe</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="library.html" class="nav-link">🎬 Library</a>
+        <a href="tiers.html" class="nav-link">🏆 Tiers</a>
+        <a href="matrix.html" class="nav-link">🧭 Matrix</a>
+        <a href="community.html" class="nav-link active">🌐 Community</a>
+        <a href="add.html" class="nav-link">+ Add Movie</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="page-container flex-1" style="max-width:1280px">
+    
+    <!-- Hero Header -->
+    <div class="page-header flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-2xl">🌐</span>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight m-0 text-white">Cinephile Community</h1>
+        </div>
+        <p class="subtitle text-sm text-kino-muted m-0">
+          Discover recent reviews, hot takes, and S-tier masterpieces from film lovers across the community.
+        </p>
+      </div>
+
+      <!-- Quick Action -->
+      <div class="flex items-center gap-2.5">
+        <a href="library.html" class="btn-secondary text-xs sm:text-sm py-2 px-3.5 inline-flex items-center gap-1.5" style="text-decoration:none">
+          <span>🎬</span><span>Your Library</span>
+        </a>
+        <a href="add.html" class="btn-primary text-xs sm:text-sm py-2 px-4 inline-flex items-center gap-1.5" style="text-decoration:none">
+          <span>+</span><span>Write Review</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="bg-white/[0.02] border border-white/[0.08] rounded-kino p-3 sm:p-4 mb-6 space-y-3">
+      <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <!-- Feed Type Tabs -->
+        <div class="flex gap-1.5 bg-black/40 p-1 rounded-full border border-white/[0.06] overflow-x-auto" id="community-tab-group">
+          <button type="button" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kino-accent text-white transition" data-feed="recent" id="tab-feed-recent">
+            🔥 Recent Reviews
+          </button>
+          <button type="button" class="px-3.5 py-1.5 rounded-full text-xs font-semibold text-kino-secondary hover:text-white transition" data-feed="masterpieces" id="tab-feed-masterpieces">
+            👑 S-Tier Masterpieces
+          </button>
+          <button type="button" class="px-3.5 py-1.5 rounded-full text-xs font-semibold text-kino-secondary hover:text-white transition" data-feed="top" id="tab-feed-top">
+            ⭐ Top Rated
+          </button>
+        </div>
+
+        <!-- Search Box -->
+        <div class="relative min-w-[220px] sm:w-72">
+          <input type="text" id="community-search" class="w-full bg-white/[0.04] border border-white/[0.08] rounded-full py-1.5 pl-8 pr-3 text-xs text-white placeholder-kino-muted focus:outline-none focus:border-kino-accent transition" placeholder="Search film or cinephile...">
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-kino-muted">🔍</span>
+        </div>
+      </div>
+
+      <!-- Genre Quick Filters -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs" id="genre-filter-bar">
+        <button type="button" class="tag-pill active" data-genre="__all__">All Genres</button>
+        <button type="button" class="tag-pill" data-genre="Sci-Fi">Sci-Fi</button>
+        <button type="button" class="tag-pill" data-genre="Drama">Drama</button>
+        <button type="button" class="tag-pill" data-genre="Thriller">Thriller</button>
+        <button type="button" class="tag-pill" data-genre="Action">Action</button>
+        <button type="button" class="tag-pill" data-genre="Horror">Horror</button>
+        <button type="button" class="tag-pill" data-genre="Comedy">Comedy</button>
+        <button type="button" class="tag-pill" data-genre="Animation">Animation</button>
+        <button type="button" class="tag-pill" data-genre="Crime">Crime</button>
+      </div>
+    </div>
+
+    <!-- Status & Feed Count Bar -->
+    <div class="flex items-center justify-between text-xs text-kino-muted mb-4 px-1">
+      <span id="community-count">Showing public reviews...</span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>Live Community</span>
+      </span>
+    </div>
+
+    <!-- Loading Skeleton State -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="community-loading">
+      <div class="bg-white/[0.02] border border-white/[0.06] rounded-kino p-4 animate-pulse h-48"></div>
+      <div class="bg-white/[0.02] border border-white/[0.06] rounded-kino p-4 animate-pulse h-48"></div>
+      <div class="bg-white/[0.02] border border-white/[0.06] rounded-kino p-4 animate-pulse h-48"></div>
+    </div>
+
+    <!-- Empty Feed State -->
+    <div class="empty-state hidden" id="community-empty">
+      <div class="empty-icon">🌐</div>
+      <div class="empty-title">No public reviews found</div>
+      <div class="empty-subtitle">Be the first to share a public review with the community!</div>
+      <a href="add.html" class="btn-primary" style="text-decoration:none">+ Review a Film</a>
+    </div>
+
+    <!-- Reviews Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden" id="community-grid"></div>
+
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand-col">
+          <a href="library.html" class="nav-brand">
+            <span class="brand-kino">Kino</span><span class="brand-vibe">Vibe</span>
+          </a>
+          <p class="footer-desc">
+            Your personal cinematic review sanctuary. Nuanced critique, personal biases, and quadrant placement for true movie lovers.
+          </p>
+        </div>
+
+        <div class="footer-links-group">
+          <div>
+            <div class="footer-col-title">Explore</div>
+            <ul class="footer-links-list">
+              <li><a href="library.html" class="footer-link">Library</a></li>
+              <li><a href="tiers.html" class="footer-link">Tier List</a></li>
+              <li><a href="matrix.html" class="footer-link">Vibe Matrix</a></li>
+              <li><a href="community.html" class="footer-link">Community</a></li>
+              <li><a href="add.html" class="footer-link">+ Add Movie</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <div class="footer-col-title">Navigation</div>
+            <ul class="footer-links-list">
+              <li><a href="profile.html" class="footer-link">Profile</a></li>
+              <li><a href="index.html" class="footer-link">Home / About</a></li>
+              <li><a href="admin.html" class="footer-link">Admin Portal</a></li>
+              <li><button type="button" class="footer-link footer-back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Back to Top</button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          Film data and posters provided by <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" class="footer-credit-link">TMDB</a>. Cloud sync powered by Supabase.
+        </div>
+        <div>
+          © 2026 KinoVibe. Built for cinephiles.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-kino-surface/95 backdrop-blur-lg border-t border-white/[0.08] px-3 py-2 flex justify-around items-center">
+    <a href="library.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">🎬</span>
+      <span>Library</span>
+    </a>
+    <a href="tiers.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">🏆</span>
+      <span>Tiers</span>
+    </a>
+    <a href="matrix.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">🧭</span>
+      <span>Matrix</span>
+    </a>
+    <a href="community.html" class="flex flex-col items-center gap-1 text-xs text-kino-accent-light font-semibold">
+      <span class="text-base">🌐</span>
+      <span>Feed</span>
+    </a>
+    <a href="profile.html" class="flex flex-col items-center gap-1 text-xs text-kino-secondary hover:text-white transition">
+      <span class="text-base">👤</span>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+  <!-- Scripts -->
+  <script type="module" src="/src/pages/community.js"></script>
+</body>
+</html>

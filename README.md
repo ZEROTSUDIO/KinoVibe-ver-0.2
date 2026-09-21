@@ -220,7 +220,7 @@ KinoVibe/
 
 ---
 
-## 📋 Release Notes — v0.3 (Profile System with Socials)
+## 📋 Release Notes — v0.3 (Social, Sharing & Community Milestone)
 
 - **Cinephile Profiles & Social Integrations**:
   - Dedicated profile portal (`profile.html`) with public sharing (`?u=@username` or `?id=uuid`) and owner edit mode.
@@ -229,12 +229,26 @@ KinoVibe/
   - Cinephile stats: Total films reviewed, overall average rating, S-tier masterpieces count, and top favorite genre.
   - Personalized taste highlights: All-time favorite movie badge, primary genre, and custom bio.
   - Customizable avatars: supports custom image links or one-click emoji presets (🍿, 🎬, 👑, 🎥, 🦇, 🛸, etc.) with real-time preview.
-- **Cross-Platform Integration**:
-  - Clickable avatar badge and "👤 Profile" link in desktop navbar and mobile bottom navigation across the entire app.
-  - Reviewer attribution card on movie detail pages (`view.html`) linking directly to the reviewer's profile.
+- **📸 Shareable Image Cards Export (HTML5 Canvas to PNG)**:
+  - Export custom **Tier Lists** (`tiers.html`) and **2D Vibe Matrices** (`matrix.html`) directly into high-resolution graphic cards.
+  - Choose between 1:1 Square (Twitter/Instagram feed), 9:16 Story (Instagram Stories/TikTok/WhatsApp), and Wide 16:9 formats.
+  - High-DPI canvas rendering with branded backdrop, custom tier rows, movie posters/points, and user watermark (`@username`).
+  - One-click **Download PNG** and **Copy Image to Clipboard** (`ClipboardItem` API).
+- **📥 Letterboxd CSV Import & Export**:
+  - Migrate full movie watching history from Letterboxd `ratings.csv`, `reviews.csv`, or `watched.csv`.
+  - Automatic score normalization: scales Letterboxd 0.5–5.0★ ratings into KinoVibe's 1.0–10.0 scale.
+  - Background TMDB enrichment automatically fetches poster artwork, backdrops, and release years.
+  - Duplicate skipping policy prevents duplicate entries against existing library reviews.
+  - Export KinoVibe catalog to Letterboxd-compatible CSV format anytime.
+- **🌐 Cinephile Community Reviews Feed (`community.html`)**:
+  - Live public feed showcasing recent reviews logged by movie lovers across the platform.
+  - One-click filters: **🔥 Recent Reviews**, **👑 S-Tier Masterpieces** ($\ge 9.0$), and **⭐ Top Rated**.
+  - Genre quick tags and real-time search across movie titles and reviewer names.
+  - Full reviewer attribution linking directly to user profiles (`profile.html?u=@username`).
 - **Database & Architecture**:
   - Added [`002_v03_profile_and_socials.sql`](file:///d:/Wengdev/KinoVibe/supabase/migrations/002_v03_profile_and_socials.sql) with columns for bio, socials, favorite film/genre, and username indexing.
-  - Client services include graceful offline fallbacks and error handling.
+  - Fully modular utilities (`src/utils/csv.js`, `src/utils/export-image.js`, `src/services/import.service.js`).
+  - Client services include graceful offline fallbacks, caching, and error handling.
 
 ---
 

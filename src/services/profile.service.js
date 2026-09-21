@@ -89,6 +89,60 @@ export const ProfileService = {
   },
 
   /**
+   * Batch fetch profiles by multiple user IDs (uses cache and fetches missing in one query)
+   */
+  async getProfilesByIds(userIds) {
+    if (!Array.isArray(userIds) || userIds.length === 0) return {};
+    const uniqueIds = [...new Set(userIds.filter(Boolean))];
+    const result = {};
+    const missingIds = [];
+
+    uniqueIds.forEach(id => {
+      if (_profileCache.has(id)) {
+        result[id] = _profileCache.get(id);
+      } else {
+        missingIds.push(id);
+      }
+    });
+
+    if (missingIds.length > 0) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', missingIds);
+
+        if (error) {
+          console.warn('ProfileService getProfilesByIds error:', error.message);
+        } else if (data) {
+          data.forEach(row => {
+            const profile = this._mapProfile(row);
+            _profileCache.set(profile.id, profile);
+            result[profile.id] = profile;
+          });
+        }
+      } catch (err) {
+        console.warn('ProfileService getProfilesByIds exception:', err);
+      }
+    }
+
+    // Fill remaining missing with basic fallbacks
+    uniqueIds.forEach(id => {
+      if (!result[id]) {
+        const fallback = {
+          id,
+          username: 'cinephile',
+          displayName: 'Cinephile',
+          avatarUrl: ''
+        };
+        result[id] = fallback;
+      }
+    });
+
+    return result;
+  },
+
+  /**
    * Fetch profile by @username handle
    */
   async getProfileByUsername(username) {

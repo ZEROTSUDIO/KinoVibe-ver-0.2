@@ -1,6 +1,7 @@
 // KinoVibe Library Page Controller — Suggestion A (Cinephile Showcase & 6-Col Grid)
 import { AuthService } from '../services/auth.service.js';
 import { MovieService } from '../services/movie.service.js';
+import { ImportService } from '../services/import.service.js';
 import { calcScores, getScoreLevel, formatScore } from '../utils/scoring.js';
 import { escapeHtml, Toast } from '../utils/ui.js';
 
@@ -392,4 +393,218 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   sortSelect.addEventListener('change', renderList);
   await loadAndRender();
+
+  // ─── CSV Import & Export Modal ─────────────────────────
+  const btnOpenCsv = document.getElementById('btn-open-csv-modal');
+  const modalCsv = document.getElementById('modal-csv-io');
+  const btnCloseCsv = document.getElementById('btn-close-csv-modal');
+  const btnCancelImport = document.getElementById('btn-cancel-import');
+  const tabCsvImport = document.getElementById('tab-csv-import');
+  const tabCsvExport = document.getElementById('tab-csv-export');
+  const panelCsvImport = document.getElementById('panel-csv-import');
+  const panelCsvExport = document.getElementById('panel-csv-export');
+
+  const csvDropzone = document.getElementById('csv-dropzone');
+  const csvFileInput = document.getElementById('csv-file-input');
+  const csvDropLabel = document.getElementById('csv-drop-label');
+  const chkEnrichTmdb = document.getElementById('chk-enrich-tmdb');
+  const chkSkipDuplicates = document.getElementById('chk-skip-duplicates');
+  const csvPreviewBox = document.getElementById('csv-preview-box');
+  const csvPreviewCount = document.getElementById('csv-preview-count');
+  const csvPreviewFormat = document.getElementById('csv-preview-format');
+  const csvPreviewList = document.getElementById('csv-preview-list');
+  const csvProgressBox = document.getElementById('csv-progress-box');
+  const csvProgressText = document.getElementById('csv-progress-text');
+  const csvProgressPercent = document.getElementById('csv-progress-percent');
+  const csvProgressBar = document.getElementById('csv-progress-bar');
+  const btnStartImport = document.getElementById('btn-start-import');
+
+  const exportLibraryCount = document.getElementById('export-library-count');
+  const btnRunExport = document.getElementById('btn-run-export');
+
+  let parsedImportMovies = [];
+
+  function openCsvModal() {
+    if (exportLibraryCount) exportLibraryCount.textContent = allMovies.length;
+    modalCsv?.classList.add('active');
+  }
+
+  function closeCsvModal() {
+    modalCsv?.classList.remove('active');
+    // Reset import form
+    parsedImportMovies = [];
+    if (csvFileInput) csvFileInput.value = '';
+    if (csvDropLabel) csvDropLabel.textContent = 'Choose or drag & drop Letterboxd CSV file';
+    csvPreviewBox?.classList.add('hidden');
+    csvProgressBox?.classList.add('hidden');
+    if (btnStartImport) {
+      btnStartImport.disabled = true;
+      btnStartImport.textContent = 'Start Import';
+    }
+  }
+
+  btnOpenCsv?.addEventListener('click', openCsvModal);
+  btnCloseCsv?.addEventListener('click', closeCsvModal);
+  btnCancelImport?.addEventListener('click', closeCsvModal);
+
+  modalCsv?.addEventListener('click', (e) => {
+    if (e.target === modalCsv) closeCsvModal();
+  });
+
+  // Tab switching
+  tabCsvImport?.addEventListener('click', () => {
+    tabCsvImport.className = 'pb-2 px-3 text-xs font-semibold border-b-2 border-kino-accent text-white';
+    tabCsvExport.className = 'pb-2 px-3 text-xs font-semibold text-kino-secondary hover:text-white';
+    panelCsvImport?.classList.remove('hidden');
+    panelCsvExport?.classList.add('hidden');
+  });
+
+  tabCsvExport?.addEventListener('click', () => {
+    tabCsvExport.className = 'pb-2 px-3 text-xs font-semibold border-b-2 border-kino-accent text-white';
+    tabCsvImport.className = 'pb-2 px-3 text-xs font-semibold text-kino-secondary hover:text-white';
+    panelCsvExport?.classList.remove('hidden');
+    panelCsvImport?.classList.add('hidden');
+    if (exportLibraryCount) exportLibraryCount.textContent = allMovies.length;
+  });
+
+  // Dropzone click & drag events
+  csvDropzone?.addEventListener('click', () => csvFileInput?.click());
+
+  csvDropzone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    csvDropzone.classList.add('border-kino-accent', 'bg-white/[0.05]');
+  });
+
+  csvDropzone?.addEventListener('dragleave', () => {
+    csvDropzone.classList.remove('border-kino-accent', 'bg-white/[0.05]');
+  });
+
+  csvDropzone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    csvDropzone.classList.remove('border-kino-accent', 'bg-white/[0.05]');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleCsvFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  csvFileInput?.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleCsvFile(e.target.files[0]);
+    }
+  });
+
+  function handleCsvFile(file) {
+    if (!file.name.endsWith('.csv')) {
+      Toast.error('Please select a valid .csv file.');
+      return;
+    }
+
+    if (csvDropLabel) csvDropLabel.textContent = `Selected: ${file.name}`;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const text = evt.target.result;
+        const result = ImportService.parseLetterboxdCSV(text);
+
+        if (!result.movies || result.movies.length === 0) {
+          Toast.warning('No valid movie records found in this file.');
+          btnStartImport.disabled = true;
+          return;
+        }
+
+        parsedImportMovies = result.movies;
+        csvPreviewCount.textContent = `${parsedImportMovies.length} movies detected`;
+        csvPreviewFormat.textContent = result.format === 'letterboxd-ratings' ? 'Letterboxd Ratings' : (result.format === 'letterboxd-reviews' ? 'Letterboxd Reviews' : 'Letterboxd Watched');
+
+        // Render preview of first 5 items
+        csvPreviewList.innerHTML = parsedImportMovies.slice(0, 5).map(m => `
+          <div class="flex items-center justify-between py-0.5 border-b border-white/[0.04]">
+            <span class="truncate font-medium text-white max-w-[240px]">${escapeHtml(m.title)} (${m.year || '—'})</span>
+            <span class="text-kino-accent-light font-bold">${m.rawRating ? `${m.rawRating}★ → ${m.finalScore}` : `${m.finalScore}`}</span>
+          </div>
+        `).join('');
+
+        if (parsedImportMovies.length > 5) {
+          csvPreviewList.innerHTML += `<div class="text-kino-muted pt-1 text-center">...and ${parsedImportMovies.length - 5} more</div>`;
+        }
+
+        csvPreviewBox?.classList.remove('hidden');
+        btnStartImport.disabled = false;
+        Toast.info(`Parsed ${parsedImportMovies.length} movies. Ready to import.`);
+      } catch (err) {
+        console.error('Error parsing CSV:', err);
+        Toast.error('Failed to parse CSV file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  btnStartImport?.addEventListener('click', async () => {
+    if (parsedImportMovies.length === 0) return;
+
+    btnStartImport.disabled = true;
+    btnStartImport.textContent = 'Importing...';
+    csvProgressBox?.classList.remove('hidden');
+
+    let toImport = [...parsedImportMovies];
+
+    // Deduplicate against existing library if checked
+    if (chkSkipDuplicates?.checked) {
+      const existingKeys = new Set(allMovies.map(m => `${(m.title || '').trim().toLowerCase()}_${m.year || ''}`));
+      toImport = toImport.filter(m => !existingKeys.has(`${(m.title || '').trim().toLowerCase()}_${m.year || ''}`));
+    }
+
+    if (toImport.length === 0) {
+      Toast.warning('All movies in this CSV already exist in your library.');
+      btnStartImport.disabled = false;
+      btnStartImport.textContent = 'Start Import';
+      return;
+    }
+
+    try {
+      // Step 1: TMDB enrichment
+      if (chkEnrichTmdb?.checked) {
+        csvProgressText.textContent = `Enriching posters & info from TMDB (0 of ${toImport.length})...`;
+        toImport = await ImportService.enrichWithTMDB(toImport, (cur, total, item) => {
+          const pct = Math.round((cur / total) * 60); // 0 to 60%
+          csvProgressBar.style.width = `${pct}%`;
+          csvProgressPercent.textContent = `${pct}%`;
+          csvProgressText.textContent = `Enriching TMDB: ${escapeHtml(item.title)} (${cur}/${total})`;
+        });
+      }
+
+      // Step 2: Batch Insert
+      csvProgressText.textContent = `Saving ${toImport.length} movies to your library...`;
+      await MovieService.batchInsert(toImport, (cur, total) => {
+        const pct = 60 + Math.round((cur / total) * 40); // 60 to 100%
+        csvProgressBar.style.width = `${pct}%`;
+        csvProgressPercent.textContent = `${pct}%`;
+        csvProgressText.textContent = `Saved ${cur} of ${total} reviews...`;
+      });
+
+      Toast.success(`Successfully imported ${toImport.length} movies into your library!`);
+      closeCsvModal();
+      await loadAndRender();
+    } catch (err) {
+      console.error('Import error:', err);
+      Toast.error('Import failed: ' + err.message);
+      btnStartImport.disabled = false;
+      btnStartImport.textContent = 'Retry Import';
+    }
+  });
+
+  btnRunExport?.addEventListener('click', () => {
+    try {
+      if (allMovies.length === 0) {
+        Toast.warning('No movies in your library to export.');
+        return;
+      }
+      ImportService.exportToLetterboxdCSV(allMovies);
+      Toast.success(`Exported ${allMovies.length} movies to Letterboxd CSV!`);
+    } catch (err) {
+      console.error('Export error:', err);
+      Toast.error('Export failed: ' + err.message);
+    }
+  });
 });
