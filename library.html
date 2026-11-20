@@ -112,6 +112,14 @@
       </div>
     </div>
 
+    <!-- Status Filter Bar (v0.4) -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 mb-3 text-xs" id="status-filter-bar">
+      <button type="button" class="tag-pill active" data-status="__all__">All Films <span id="status-count-all" class="tag-pill-count">0</span></button>
+      <button type="button" class="tag-pill" data-status="completed">🎬 Watched <span id="status-count-completed" class="tag-pill-count">0</span></button>
+      <button type="button" class="tag-pill" data-status="watchlist">🔖 Watchlist <span id="status-count-watchlist" class="tag-pill-count">0</span></button>
+      <button type="button" class="tag-pill" data-status="dropped">🛑 Dropped <span id="status-count-dropped" class="tag-pill-count">0</span></button>
+    </div>
+
     <!-- Tag Filter Bar — populated by library.js -->
     <div class="tag-filter-bar hidden mb-4" id="tag-filter-bar"></div>
 

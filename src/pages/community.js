@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const searchInput = document.getElementById('community-search');
   const tabBtns = document.querySelectorAll('#community-tab-group button');
   const genreBtns = document.querySelectorAll('#genre-filter-bar .tag-pill');
+  const loadMoreContainer = document.getElementById('community-load-more-container');
+  const loadMoreBtn = document.getElementById('btn-load-more');
+  const loadMoreBtnText = document.getElementById('load-more-btn-text');
+  const endOfFeedEl = document.getElementById('community-end-of-feed');
 
   let currentFeed = 'recent'; // 'recent' | 'masterpieces' | 'top'
   let currentGenre = '__all__';
@@ -22,10 +26,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   let allPublicReviews = [];
   let userProfilesMap = {};
 
-  async function fetchReviews() {
-    if (loadingEl) loadingEl.classList.remove('hidden');
-    if (gridEl) gridEl.classList.add('hidden');
-    if (emptyEl) emptyEl.classList.add('hidden');
+  // Pagination State (v0.4)
+  const PAGE_SIZE = 24;
+  let currentPage = 0;
+  let hasMore = true;
+  let isLoading = false;
+
+  async function fetchReviews(isLoadMore = false) {
+    if (isLoading) return;
+    isLoading = true;
+
+    if (!isLoadMore) {
+      currentPage = 0;
+      hasMore = true;
+      if (loadingEl) loadingEl.classList.remove('hidden');
+      if (gridEl) gridEl.classList.add('hidden');
+      if (emptyEl) emptyEl.classList.add('hidden');
+      if (loadMoreContainer) loadMoreContainer.classList.add('hidden');
+    } else {
+      if (loadMoreBtnText) loadMoreBtnText.textContent = 'Loading more...';
+      if (loadMoreBtn) loadMoreBtn.disabled = true;
+    }
 
     try {
       let sortBy = 'newest';
@@ -38,48 +59,76 @@ document.addEventListener('DOMContentLoaded', async () => {
         sortBy = 'highest';
       }
 
-      allPublicReviews = await MovieService.getPublicFeed({
+      const newReviews = await MovieService.getPublicFeed({
         sortBy,
         minScore,
-        limit: 60
+        genre: currentGenre,
+        limit: PAGE_SIZE,
+        page: currentPage
       });
 
-      // Batch query reviewer profiles for all user IDs
-      const userIds = allPublicReviews.map(m => m.userId).filter(Boolean);
-      userProfilesMap = await ProfileService.getProfilesByIds(userIds);
+      if (newReviews.length < PAGE_SIZE) {
+        hasMore = false;
+      }
+
+      if (isLoadMore) {
+        allPublicReviews = [...allPublicReviews, ...newReviews];
+      } else {
+        allPublicReviews = newReviews;
+      }
+
+      // Batch query reviewer profiles for new user IDs
+      const userIds = newReviews.map(m => m.userId).filter(Boolean);
+      if (userIds.length > 0) {
+        const newProfiles = await ProfileService.getProfilesByIds(userIds);
+        userProfilesMap = { ...userProfilesMap, ...newProfiles };
+      }
 
       renderFeed();
     } catch (err) {
       console.error('Failed to load community reviews:', err);
-      allPublicReviews = [];
+      if (!isLoadMore) allPublicReviews = [];
       renderFeed();
     } finally {
+      isLoading = false;
       if (loadingEl) loadingEl.classList.add('hidden');
+      if (loadMoreBtnText) loadMoreBtnText.textContent = 'Load More Reviews';
+      if (loadMoreBtn) loadMoreBtn.disabled = false;
+      updatePaginationUI();
+    }
+  }
+
+  function updatePaginationUI() {
+    if (!loadMoreContainer) return;
+    const isSearching = Boolean(searchQuery.trim());
+
+    if (allPublicReviews.length === 0 || isSearching) {
+      loadMoreContainer.classList.add('hidden');
+      return;
+    }
+
+    loadMoreContainer.classList.remove('hidden');
+    if (hasMore) {
+      loadMoreBtn?.classList.remove('hidden');
+      endOfFeedEl?.classList.add('hidden');
+    } else {
+      loadMoreBtn?.classList.add('hidden');
+      endOfFeedEl?.classList.remove('hidden');
     }
   }
 
   function getFilteredReviews() {
+    if (!searchQuery) return allPublicReviews;
+
+    // Search query matches title or reviewer name
     return allPublicReviews.filter(movie => {
-      // 1. Genre filter
-      if (currentGenre !== '__all__') {
-        const genreMatches = (movie.genres || []).some(g =>
-          String(g).toLowerCase().includes(currentGenre.toLowerCase())
-        );
-        if (!genreMatches) return false;
-      }
-
-      // 2. Search query (matches title or reviewer name)
-      if (searchQuery) {
-        const titleMatch = (movie.title || '').toLowerCase().includes(searchQuery);
-        const profile = userProfilesMap[movie.userId];
-        const authorMatch = profile && (
-          (profile.displayName || '').toLowerCase().includes(searchQuery) ||
-          (profile.username || '').toLowerCase().includes(searchQuery)
-        );
-        if (!titleMatch && !authorMatch) return false;
-      }
-
-      return true;
+      const titleMatch = (movie.title || '').toLowerCase().includes(searchQuery);
+      const profile = userProfilesMap[movie.userId];
+      const authorMatch = profile && (
+        (profile.displayName || '').toLowerCase().includes(searchQuery) ||
+        (profile.username || '').toLowerCase().includes(searchQuery)
+      );
+      return titleMatch || authorMatch;
     });
   }
 
@@ -93,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (displayed.length === 0) {
       if (gridEl) gridEl.classList.add('hidden');
       if (emptyEl) emptyEl.classList.remove('hidden');
+      updatePaginationUI();
       return;
     }
 
@@ -101,6 +151,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       gridEl.classList.remove('hidden');
       gridEl.innerHTML = displayed.map((movie, idx) => renderReviewCard(movie, idx)).join('');
     }
+    updatePaginationUI();
   }
 
   function renderReviewCard(movie, index) {
@@ -135,10 +186,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       ? 'shadow-glow-high ring-1 ring-emerald-500/40 text-emerald-400'
       : (level === 'mid' ? 'shadow-glow-mid ring-1 ring-amber-500/40 text-amber-400' : 'shadow-glow-low ring-1 ring-rose-500/40 text-rose-400');
 
-    // Review snippet
+    // Review snippet (v0.4 quote styling)
     const reviewSnippet = movie.reviewText
-      ? `<p class="text-xs text-kino-secondary italic line-clamp-3 leading-relaxed mb-3">"${escapeHtml(movie.reviewText)}"</p>`
-      : `<p class="text-xs text-kino-muted italic mb-3">Rated ${scoreFormatted} / 10 with calibrated biases.</p>`;
+      ? `<div class="relative pl-3 border-l-2 border-kino-accent/60 mb-3 bg-white/[0.015] py-1.5 pr-2 rounded-r">
+           <p class="text-xs text-kino-secondary italic line-clamp-3 leading-relaxed">"${escapeHtml(movie.reviewText)}"</p>
+         </div>`
+      : `<p class="text-xs text-kino-muted italic mb-3">Rated ${scoreFormatted} / 10 across 4 core criteria.</p>`;
+
+    // Bias badge (v0.4)
+    let biasBadge = '';
+    if (Array.isArray(movie.biases) && movie.biases.length > 0) {
+      const b = movie.biases[0];
+      const sign = b.amount > 0 ? '+' : '';
+      biasBadge = `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${b.amount >= 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+        <span>⚡</span><span>${sign}${b.amount} ${escapeHtml(b.reason || 'Bias')}</span>
+      </span>`;
+    }
+
+    // 4 Criteria Telemetry Mini Strip (v0.4)
+    const telemetryStrip = `
+      <div class="grid grid-cols-4 gap-1 py-1.5 px-2 bg-black/40 rounded border border-white/[0.04] text-[10px] text-center my-2.5">
+        <div><span class="text-kino-muted block text-[9px] uppercase tracking-wider">Story</span><span class="font-bold text-white">${movie.storyScore || 0}</span></div>
+        <div><span class="text-kino-muted block text-[9px] uppercase tracking-wider">Visual</span><span class="font-bold text-white">${movie.visualScore || 0}</span></div>
+        <div><span class="text-kino-muted block text-[9px] uppercase tracking-wider">Action</span><span class="font-bold text-white">${movie.actionScore || 0}</span></div>
+        <div><span class="text-kino-muted block text-[9px] uppercase tracking-wider">Fun</span><span class="font-bold text-white">${movie.funScore || 0}</span></div>
+      </div>
+    `;
 
     const timeAgo = formatTimeAgo(movie.createdAt);
 
@@ -162,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
 
           <!-- Movie Content Row -->
-          <div class="flex gap-3.5 mb-3">
+          <div class="flex gap-3.5 mb-2">
             <a href="view.html?id=${movie.id}" class="w-16 h-24 flex-shrink-0 overflow-hidden rounded-kino-sm relative border border-white/[0.08] block">
               ${posterContent}
             </a>
@@ -176,17 +249,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
               </div>
 
-              <!-- Score Badge -->
-              <div class="flex items-center gap-2">
+              <!-- Score Badge & Bias -->
+              <div class="flex items-center gap-2 flex-wrap">
                 <div class="score-badge ${level} ${glowRing} text-xs font-bold px-2 py-0.5 rounded">
                   ${scoreFormatted}
                 </div>
-                <span class="text-[10px] uppercase font-bold tracking-wider text-kino-muted">
-                  ${level === 'high' ? 'Masterpiece' : (level === 'mid' ? 'Solid' : 'Flawed')}
-                </span>
+                ${biasBadge}
               </div>
             </div>
           </div>
+
+          <!-- 4 Criteria Telemetry Mini Strip -->
+          ${telemetryStrip}
 
           <!-- Review Snippet -->
           ${reviewSnippet}
@@ -222,7 +296,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
-  // ─── Filter Listeners ─────────────────────────────────
+  // ─── Filter & Pagination Listeners ────────────────────
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       tabBtns.forEach(b => {
@@ -230,7 +304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       btn.className = 'px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kino-accent text-white transition';
       currentFeed = btn.dataset.feed || 'recent';
-      fetchReviews();
+      fetchReviews(false);
     });
   });
 
@@ -239,8 +313,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       genreBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentGenre = btn.dataset.genre || '__all__';
-      renderFeed();
+      fetchReviews(false);
     });
+  });
+
+  loadMoreBtn?.addEventListener('click', () => {
+    if (hasMore && !isLoading) {
+      currentPage++;
+      fetchReviews(true);
+    }
   });
 
   searchInput?.addEventListener('input', (e) => {
@@ -249,5 +330,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Initial Fetch
-  await fetchReviews();
+  await fetchReviews(false);
 });

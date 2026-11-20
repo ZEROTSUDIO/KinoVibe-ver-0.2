@@ -28,15 +28,181 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnDots = document.getElementById('toggle-matrix-dots');
   const tagFilterBar = document.getElementById('tag-filter-bar');
 
+  // Lens Switcher & Axis Elements (v0.4)
+  const lensBtns = document.querySelectorAll('#matrix-lens-toggle .tier-view-btn');
+  const axisTopTitle = document.getElementById('axis-label-top-title');
+  const axisTopFormula = document.getElementById('axis-label-top-formula');
+  const axisLeftTitle = document.getElementById('axis-label-left-title');
+  const axisRightTitle = document.getElementById('axis-label-right-title');
+  const axisRightFormula = document.getElementById('axis-label-right-formula');
+  const axisBottomTitle = document.getElementById('axis-label-bottom-title');
+  const tickCenter = document.getElementById('tick-center');
+  const tickXMin = document.getElementById('tick-x-min');
+  const tickYMin = document.getElementById('tick-y-min');
+  const quadTitleTl = document.getElementById('quad-title-tl');
+  const quadDescTl = document.getElementById('quad-desc-tl');
+  const quadTitleTr = document.getElementById('quad-title-tr');
+  const quadDescTr = document.getElementById('quad-desc-tr');
+  const quadTitleBl = document.getElementById('quad-title-bl');
+  const quadDescBl = document.getElementById('quad-desc-bl');
+  const quadTitleBr = document.getElementById('quad-title-br');
+  const quadDescBr = document.getElementById('quad-desc-br');
+
+  const LENSES = {
+    classic: {
+      id: 'classic',
+      label: 'Classic (0–10)',
+      axisTopTitle: 'High Entertainment',
+      axisTopFormula: 'avg(Action + Fun)',
+      axisBottomTitle: 'Low Entertainment',
+      axisLeftTitle: 'Low Quality',
+      axisRightTitle: 'High Quality',
+      axisRightFormula: 'avg(Story + Visuals)',
+      tickCenter: '5.0',
+      tickXMin: '0',
+      tickYMin: '0',
+      quadTlTitle: 'Guilty Pleasures',
+      quadTlDesc: 'Low Craft · High Fun',
+      quadTrTitle: 'Peak Cinema',
+      quadTrDesc: 'High Craft · High Fun',
+      quadBlTitle: 'Duds & Skips',
+      quadBlDesc: 'Low Craft · Low Fun',
+      quadBrTitle: 'Slow Burns & Prestige',
+      quadBrDesc: 'High Craft · Low Fun',
+      computeCoords: (m) => {
+        const x = Math.round(((m.story + m.visuals) / 2) * 10) / 10;
+        const y = Math.round(((m.action + m.fun) / 2) * 10) / 10;
+        const normX = x / 10;
+        const normY = y / 10;
+        let quad = 'duds';
+        let quadLabel = 'Duds & Skips';
+        if (x >= 5 && y >= 5) { quad = 'peak'; quadLabel = 'Peak Cinema'; }
+        else if (x < 5 && y >= 5) { quad = 'guilty'; quadLabel = 'Guilty Pleasures'; }
+        else if (x >= 5 && y < 5) { quad = 'slow'; quadLabel = 'Slow Burns & Prestige'; }
+        return { coordX: x, coordY: y, normX, normY, quad, quadLabel };
+      }
+    },
+    story: {
+      id: 'story',
+      label: 'Story × Fun',
+      axisTopTitle: 'Pure Fun & Entertainment',
+      axisTopFormula: 'Fun score (0–10)',
+      axisBottomTitle: 'Serious / Heavy',
+      axisLeftTitle: 'Light Narrative',
+      axisRightTitle: 'Deep Story & Writing',
+      axisRightFormula: 'Story score (0–10)',
+      tickCenter: '5.0',
+      tickXMin: '0',
+      tickYMin: '0',
+      quadTlTitle: 'Popcorn & Escapism',
+      quadTlDesc: 'Light Story · Pure Fun',
+      quadTrTitle: 'Rich Masterpiece',
+      quadTrDesc: 'Deep Story · High Fun',
+      quadBlTitle: 'Bleak & Shallow',
+      quadBlDesc: 'Low Story · Low Fun',
+      quadBrTitle: 'Serious Narrative',
+      quadBrDesc: 'Deep Story · Low Fun',
+      computeCoords: (m) => {
+        const x = m.story;
+        const y = m.fun;
+        const normX = x / 10;
+        const normY = y / 10;
+        let quad = 'duds';
+        let quadLabel = 'Bleak & Shallow';
+        if (x >= 5 && y >= 5) { quad = 'peak'; quadLabel = 'Rich Masterpiece'; }
+        else if (x < 5 && y >= 5) { quad = 'guilty'; quadLabel = 'Popcorn & Escapism'; }
+        else if (x >= 5 && y < 5) { quad = 'slow'; quadLabel = 'Serious Narrative'; }
+        return { coordX: x, coordY: y, normX, normY, quad, quadLabel };
+      }
+    },
+    rare: {
+      id: 'rare',
+      label: 'Focused (3–10)',
+      axisTopTitle: 'High Entertainment',
+      axisTopFormula: 'avg(Action + Fun)',
+      axisBottomTitle: 'Low Entertainment',
+      axisLeftTitle: 'Low Quality',
+      axisRightTitle: 'High Quality',
+      axisRightFormula: 'avg(Story + Visuals)',
+      tickCenter: '6.5',
+      tickXMin: '3',
+      tickYMin: '3',
+      quadTlTitle: 'Guilty Pleasures',
+      quadTlDesc: 'Craft < 6.5 · Fun ≥ 6.5',
+      quadTrTitle: 'Peak Cinema',
+      quadTrDesc: 'Craft ≥ 6.5 · Fun ≥ 6.5',
+      quadBlTitle: 'Duds & Skips',
+      quadBlDesc: 'Craft < 6.5 · Fun < 6.5',
+      quadBrTitle: 'Slow Burns',
+      quadBrDesc: 'Craft ≥ 6.5 · Fun < 6.5',
+      computeCoords: (m) => {
+        const x = Math.round(((m.story + m.visuals) / 2) * 10) / 10;
+        const y = Math.round(((m.action + m.fun) / 2) * 10) / 10;
+        const normX = Math.max(0, Math.min(1, (x - 3) / 7));
+        const normY = Math.max(0, Math.min(1, (y - 3) / 7));
+        let quad = 'duds';
+        let quadLabel = 'Duds & Skips';
+        if (x >= 6.5 && y >= 6.5) { quad = 'peak'; quadLabel = 'Peak Cinema'; }
+        else if (x < 6.5 && y >= 6.5) { quad = 'guilty'; quadLabel = 'Guilty Pleasures'; }
+        else if (x >= 6.5 && y < 6.5) { quad = 'slow'; quadLabel = 'Slow Burns'; }
+        return { coordX: x, coordY: y, normX, normY, quad, quadLabel };
+      }
+    }
+  };
+
   let currentView = localStorage.getItem('kinovibe_matrix_view') || 'posters';
   let activeQuadrant = 'all';
   let searchTerm = '';
   let activeTags = new Set();
 
-  // Read URL param (e.g. matrix.html?tag=sci-fi)
+  // Read URL param (e.g. matrix.html?tag=sci-fi&lens=story)
   const urlParams = new URLSearchParams(window.location.search);
   const urlTag = urlParams.get('tag');
   if (urlTag) activeTags.add(urlTag.trim().toLowerCase());
+
+  let currentLens = urlParams.get('lens') || urlParams.get('mode') || 'classic';
+  if (!LENSES[currentLens]) currentLens = 'classic';
+
+  function applyLensUI(lensKey) {
+    const config = LENSES[lensKey] || LENSES.classic;
+    lensBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.lens === lensKey));
+
+    if (axisTopTitle) axisTopTitle.textContent = config.axisTopTitle;
+    if (axisTopFormula) axisTopFormula.textContent = config.axisTopFormula;
+    if (axisBottomTitle) axisBottomTitle.textContent = config.axisBottomTitle;
+    if (axisLeftTitle) axisLeftTitle.textContent = config.axisLeftTitle;
+    if (axisRightTitle) axisRightTitle.textContent = config.axisRightTitle;
+    if (axisRightFormula) axisRightFormula.textContent = config.axisRightFormula;
+
+    if (tickCenter) tickCenter.textContent = config.tickCenter;
+    if (tickXMin) tickXMin.textContent = config.tickXMin;
+    if (tickYMin) tickYMin.textContent = config.tickYMin;
+
+    if (quadTitleTl) quadTitleTl.textContent = config.quadTlTitle;
+    if (quadDescTl) quadDescTl.textContent = config.quadTlDesc;
+    if (quadTitleTr) quadTitleTr.textContent = config.quadTrTitle;
+    if (quadDescTr) quadDescTr.textContent = config.quadTrDesc;
+    if (quadTitleBl) quadTitleBl.textContent = config.quadBlTitle;
+    if (quadDescBl) quadDescBl.textContent = config.quadBlDesc;
+    if (quadTitleBr) quadTitleBr.textContent = config.quadBrTitle;
+    if (quadDescBr) quadDescBr.textContent = config.quadBrDesc;
+  }
+
+  lensBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const l = btn.dataset.lens;
+      if (l && LENSES[l] && l !== currentLens) {
+        currentLens = l;
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('lens', l);
+        history.replaceState(null, '', newUrl.toString());
+        applyLensUI(currentLens);
+        rebuildAndRender();
+      }
+    });
+  });
+
+  applyLensUI(currentLens);
 
   // Show spinner
   if (loadingStateEl) {
@@ -128,38 +294,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function processMovies(source) {
     coordMap.clear();
+    const activeConfig = LENSES[currentLens] || LENSES.classic;
+
     return source.map(movie => {
       const story = Number(movie.storyScore) || 0;
       const visuals = Number(movie.visualScore) || 0;
       const action = Number(movie.actionScore) || 0;
       const fun = Number(movie.funScore) || 0;
 
-      // Horizontal: Quality = avg(Story + Visuals)
-      const quality = Math.round(((story + visuals) / 2) * 10) / 10;
-      // Vertical: Entertainment = avg(Action + Fun)
-      const entertainment = Math.round(((action + fun) / 2) * 10) / 10;
-
       const scores = calcScores(story, visuals, action, fun, movie.biases || []);
       const finalScore = Number(scores.final);
 
-      // 4 Quadrants
-      let quadrant = 'duds';
-      let quadrantLabel = 'Duds & Skips';
-      if (quality >= 5 && entertainment >= 5) {
-        quadrant = 'peak'; quadrantLabel = 'Peak Cinema';
-      } else if (quality < 5 && entertainment >= 5) {
-        quadrant = 'guilty'; quadrantLabel = 'Guilty Pleasures';
-      } else if (quality >= 5 && entertainment < 5) {
-        quadrant = 'slow'; quadrantLabel = 'Slow Burns & Prestige';
-      }
+      const calculated = activeConfig.computeCoords({ story, visuals, action, fun });
+      const { coordX, coordY, normX, normY, quad: quadrant, quadLabel: quadrantLabel } = calculated;
 
-      const key = `${quality.toFixed(1)}_${entertainment.toFixed(1)}`;
+      const key = `${coordX.toFixed(1)}_${coordY.toFixed(1)}`;
       const coordIndex = coordMap.get(key) || 0;
       coordMap.set(key, coordIndex + 1);
 
       return {
         ...movie,
-        quality, entertainment,
+        quality: coordX,
+        entertainment: coordY,
+        normX,
+        normY,
         story, visuals, action, fun,
         finalScore, quadrant, quadrantLabel, coordIndex
       };
@@ -199,8 +357,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         offsetY = Math.sin(angle) * radius;
       }
 
-      let posX = INSET + (movie.quality / 10) * USABLE + offsetX;
-      let posY = INSET + (movie.entertainment / 10) * USABLE + offsetY;
+      let posX = INSET + movie.normX * USABLE + offsetX;
+      let posY = INSET + movie.normY * USABLE + offsetY;
 
       posX = Math.max(3, Math.min(97, posX));
       posY = Math.max(3, Math.min(97, posY));

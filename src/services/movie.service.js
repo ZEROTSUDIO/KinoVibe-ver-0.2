@@ -142,6 +142,64 @@ export class MovieService {
   }
 
   /**
+   * Check if user already reviewed or saved a movie
+   */
+  static async findDuplicate({ tmdbId = null, title = '', year = null, excludeId = null } = {}) {
+    const user = await AuthService.getUser();
+    const userId = user ? user.id : 'guest';
+    const local = this._loadLocal(userId);
+
+    // 1. Check local cache first
+    const cleanTitle = (title || '').trim().toLowerCase();
+    const numYear = year ? parseInt(year) : null;
+    const numTmdb = tmdbId ? parseInt(tmdbId) : null;
+
+    const localMatch = local.find(m => {
+      if (excludeId && String(m.id) === String(excludeId)) return false;
+      if (numTmdb && m.tmdbId && parseInt(m.tmdbId) === numTmdb) return true;
+      if (cleanTitle && m.title && m.title.trim().toLowerCase() === cleanTitle) {
+        if (!numYear || !m.year) return true;
+        return parseInt(m.year) === numYear;
+      }
+      return false;
+    });
+
+    if (localMatch) return localMatch;
+
+    // 2. Query Supabase for cloud sync check if authenticated
+    if (user) {
+      try {
+        if (numTmdb) {
+          let q = supabase
+            .from('movies')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('tmdb_id', numTmdb);
+          if (excludeId) q = q.neq('id', excludeId);
+          const { data, error } = await q.maybeSingle();
+          if (!error && data) return this._mapFromDB(data);
+        }
+
+        if (cleanTitle) {
+          let q = supabase
+            .from('movies')
+            .select('*')
+            .eq('user_id', user.id)
+            .ilike('title', (title || '').trim());
+          if (numYear) q = q.eq('year', numYear);
+          if (excludeId) q = q.neq('id', excludeId);
+          const { data, error } = await q.limit(1);
+          if (!error && data && data.length > 0) return this._mapFromDB(data[0]);
+        }
+      } catch (err) {
+        console.warn('findDuplicate cloud query error:', err);
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Save movie (Insert or Update)
    */
   static async save(data) {
@@ -467,6 +525,16 @@ export class MovieService {
         query = query.gte('final_score', minScore);
       }
 
+      // Database-level genre filtering via JSONB containment
+      if (genre && genre !== '__all__') {
+        const g = String(genre).trim();
+        if (g.toLowerCase() === 'sci-fi') {
+          query = query.or('genres.cs.["Science Fiction"],genres.cs.["Sci-Fi"]');
+        } else {
+          query = query.contains('genres', JSON.stringify([g]));
+        }
+      }
+
       if (sortBy === 'highest') {
         query = query.order('final_score', { ascending: false });
       } else if (sortBy === 'lowest') {
@@ -485,15 +553,7 @@ export class MovieService {
         return [];
       }
 
-      let movies = (data || []).map(r => this._mapFromDB(r));
-
-      // Filter by genre in client if requested
-      if (genre && genre !== '__all__') {
-        const genreLower = genre.toLowerCase();
-        movies = movies.filter(m => (m.genres || []).some(g => String(g).toLowerCase().includes(genreLower)));
-      }
-
-      return movies;
+      return (data || []).map(r => this._mapFromDB(r));
     } catch (err) {
       console.error('getPublicFeed exception:', err);
       return [];

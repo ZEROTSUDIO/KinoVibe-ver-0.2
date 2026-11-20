@@ -42,8 +42,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const collectionHeading = document.getElementById('collection-heading');
   const collectionSubtitle = document.getElementById('collection-subtitle');
 
+  // Status Filter Elements (v0.4)
+  const statusFilterBar = document.getElementById('status-filter-bar');
+  const countAll = document.getElementById('status-count-all');
+  const countCompleted = document.getElementById('status-count-completed');
+  const countWatchlist = document.getElementById('status-count-watchlist');
+  const countDropped = document.getElementById('status-count-dropped');
+
   let allMovies = [];
   let activeTags = new Set();
+  let statusFilter = '__all__'; // '__all__' | 'completed' | 'watchlist' | 'dropped'
   let searchQuery = '';
 
   // Read URL param on load (e.g. library.html?tag=rewatchable)
@@ -74,10 +82,37 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    renderStatusFilterBar();
     renderTagFilterBar();
     renderStatsAndShowcase();
     renderList();
   }
+
+  // ─── 0. Status Filter Bar (v0.4) ──────────────────────
+  function renderStatusFilterBar() {
+    if (!statusFilterBar) return;
+    const total = allMovies.length;
+    const completed = allMovies.filter(m => !m.status || m.status === 'completed').length;
+    const watchlist = allMovies.filter(m => m.status === 'watchlist').length;
+    const dropped = allMovies.filter(m => m.status === 'dropped').length;
+
+    if (countAll) countAll.textContent = total;
+    if (countCompleted) countCompleted.textContent = completed;
+    if (countWatchlist) countWatchlist.textContent = watchlist;
+    if (countDropped) countDropped.textContent = dropped;
+
+    statusFilterBar.querySelectorAll('button').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.status === statusFilter);
+    });
+  }
+
+  statusFilterBar?.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      statusFilter = btn.dataset.status || '__all__';
+      renderStatusFilterBar();
+      renderList();
+    });
+  });
 
   // ─── 1. Stats & Showcase Shelves (Suggestion A) ───────
   function renderStatsAndShowcase() {
@@ -87,43 +122,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Calculate aggregated statistics
+    // Only completed/reviewed movies contribute to rating stats (v0.4)
+    const reviewedMovies = allMovies.filter(m => !m.status || m.status === 'completed');
+
     let totalScoreSum = 0;
     let sTierCount = 0;
     let storySum = 0, visualsSum = 0, actionSum = 0, funSum = 0;
 
     const enriched = allMovies.map(m => {
       const scores = calcScores(m.storyScore, m.visualScore, m.actionScore, m.funScore, m.biases || []);
-      totalScoreSum += scores.final;
-      if (scores.final >= 9.0) sTierCount++;
+      const isReviewed = !m.status || m.status === 'completed';
 
-      storySum += Number(m.storyScore) || 0;
-      visualsSum += Number(m.visualScore) || 0;
-      actionSum += Number(m.actionScore) || 0;
-      funSum += Number(m.funScore) || 0;
+      if (isReviewed) {
+        totalScoreSum += scores.final;
+        if (scores.final >= 9.0) sTierCount++;
+
+        storySum += Number(m.storyScore) || 0;
+        visualsSum += Number(m.visualScore) || 0;
+        actionSum += Number(m.actionScore) || 0;
+        funSum += Number(m.funScore) || 0;
+      }
 
       return { ...m, computedScores: scores };
     });
 
-    const avgFinal = (totalScoreSum / allMovies.length).toFixed(1);
+    const reviewedCount = reviewedMovies.length;
+    const avgFinal = reviewedCount > 0 ? (totalScoreSum / reviewedCount).toFixed(1) : '—';
 
     // Determine highest rated criterion
-    const criteriaAvgs = [
-      { label: 'Story', val: storySum / allMovies.length },
-      { label: 'Visuals', val: visualsSum / allMovies.length },
-      { label: 'Action', val: actionSum / allMovies.length },
-      { label: 'Fun', val: funSum / allMovies.length },
-    ].sort((a, b) => b.val - a.val);
+    const criteriaAvgs = reviewedCount > 0 ? [
+      { label: 'Story', val: storySum / reviewedCount },
+      { label: 'Visuals', val: visualsSum / reviewedCount },
+      { label: 'Action', val: actionSum / reviewedCount },
+      { label: 'Fun', val: funSum / reviewedCount },
+    ].sort((a, b) => b.val - a.val) : [];
 
-    const topCriterion = criteriaAvgs[0];
+    const topCriterion = criteriaAvgs.length > 0 ? criteriaAvgs[0] : null;
 
     // Populate Top Stats Strip
     if (statsBar) {
       statsBar.classList.remove('hidden');
       if (statTotal) statTotal.textContent = allMovies.length;
-      if (statAvg) statAvg.textContent = `★ ${avgFinal}`;
+      if (statAvg) statAvg.textContent = avgFinal !== '—' ? `★ ${avgFinal}` : '—';
       if (statSTier) statSTier.textContent = sTierCount;
-      if (statTopCraft) statTopCraft.textContent = `${topCriterion.label} (${topCriterion.val.toFixed(1)})`;
+      if (statTopCraft) statTopCraft.textContent = topCriterion ? `${topCriterion.label} (${topCriterion.val.toFixed(1)})` : '—';
     }
 
     // Populate Showcase Shelf 1: Hall of Fame (S Tier / 9.0+)
@@ -194,6 +236,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       badgeHtml = `<div class="movie-card-tags" style="margin-top:2px">${movieTags.slice(0, 1).map(t => `<span class="tag-link" style="pointer-events:none;font-size:9px;padding:1px 5px">${escapeHtml(t)}</span>`).join('')}${movieTags.length > 1 ? `<span style="font-size:9px;color:var(--text-muted)">+${movieTags.length - 1}</span>` : ''}</div>`;
     }
 
+    // Score or Status Badge (v0.4)
+    let scoreBadgeHtml = `<div class="score-badge ${level} ${glowRing} flex-shrink-0">${formatScore(scores.final)}</div>`;
+    if (movie.status === 'watchlist') {
+      scoreBadgeHtml = `<div class="score-badge flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">🔖 Watchlist</div>`;
+    } else if (movie.status === 'dropped') {
+      scoreBadgeHtml = `<div class="score-badge flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">🛑 Dropped</div>`;
+    }
+
     return `
       <div class="w-full flex flex-col group">
         <a href="view.html?id=${movie.id}" class="movie-card ${extraCardClass} fade-in block h-full transition duration-300 hover:-translate-y-1.5" style="--delay:${index * 0.03}s">
@@ -204,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <div class="movie-year">${escapeHtml(movie.year) || '—'}</div>
               ${badgeHtml}
             </div>
-            <div class="score-badge ${level} ${glowRing} flex-shrink-0">${formatScore(scores.final)}</div>
+            ${scoreBadgeHtml}
           </div>
         </a>
       </div>
@@ -267,6 +317,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   function getFilteredMovies() {
     let result = allMovies;
 
+    // Filter by status (v0.4)
+    if (statusFilter !== '__all__') {
+      result = result.filter(m => {
+        const s = m.status || 'completed';
+        return s === statusFilter;
+      });
+    }
+
     if (activeTags.size > 0) {
       result = result.filter(m => {
         const movieTags = Array.isArray(m.tags) ? m.tags : [];
@@ -295,7 +353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const filtered = getFilteredMovies();
     const movies = sortMovies(filtered, sort);
 
-    const isFiltered = activeTags.size > 0 || Boolean(searchQuery.trim());
+    const isFiltered = activeTags.size > 0 || Boolean(searchQuery.trim()) || statusFilter !== '__all__';
 
     // Toggle showcase visibility based on filter state
     if (showcaseContainer) {

@@ -58,10 +58,47 @@
           </div>
           <button type="button" id="clear-movie-preview" class="text-kino-muted hover:text-white text-xs px-2.5 py-1 rounded bg-white/[0.05] border border-white/[0.08] cursor-pointer">✕</button>
         </div>
+
+        <!-- Duplicate Review Warning Banner -->
+        <div id="duplicate-warning-box" class="hidden mt-3 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-kino text-xs">
+          <div class="flex items-start gap-2.5">
+            <span class="text-base flex-shrink-0">⚠️</span>
+            <div class="flex-1 min-w-0">
+              <div class="font-bold text-amber-300 mb-0.5">Existing Review Found</div>
+              <div class="text-kino-secondary" id="duplicate-warning-text">You have already logged this film in your collection.</div>
+              <div class="mt-2.5 flex items-center gap-2 flex-wrap">
+                <a href="#" id="duplicate-view-link" class="btn-secondary text-[11px] py-1 px-3 inline-flex items-center gap-1 font-semibold text-white no-underline">
+                  <span>Open That Review</span> <span>↗</span>
+                </a>
+                <button type="button" id="duplicate-dismiss-btn" class="text-kino-muted hover:text-white text-[11px] px-2 py-1 underline cursor-pointer">
+                  Dismiss warning & keep editing
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="section-title">Details</div>
+      <div class="section-title">Details & Status</div>
       <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+        <div class="col-span-12">
+          <div class="form-group mb-1">
+            <label class="form-label">Review Status</label>
+            <div class="flex gap-2 flex-wrap" id="status-button-group">
+              <button type="button" class="status-btn active px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kino-accent text-white transition flex items-center gap-1.5 cursor-pointer" data-status="completed">
+                <span>🎬</span><span>Watched / Reviewed</span>
+              </button>
+              <button type="button" class="status-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/[0.04] text-kino-secondary hover:text-white border border-white/[0.08] transition flex items-center gap-1.5 cursor-pointer" data-status="watchlist">
+                <span>🔖</span><span>Want to Watch (Watchlist)</span>
+              </button>
+              <button type="button" class="status-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/[0.04] text-kino-secondary hover:text-white border border-white/[0.08] transition flex items-center gap-1.5 cursor-pointer" data-status="dropped">
+                <span>🛑</span><span>Dropped / Abandoned</span>
+              </button>
+            </div>
+            <input type="hidden" id="movie-status" name="status" value="completed">
+          </div>
+        </div>
+
         <div class="md:col-span-8">
           <div class="form-group">
             <label class="form-label" for="title">Title</label>
@@ -88,50 +125,70 @@
         </div>
       </div>
 
-      <div class="section-title">Scores</div>
-      <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">Story</span><span class="slider-value" id="story-val">5</span></div>
-        <input type="range" id="story-score" min="0" max="10" step="0.5" value="5">
-      </div>
-      <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">Visuals</span><span class="slider-value" id="visuals-val">5</span></div>
-        <input type="range" id="visuals-score" min="0" max="10" step="0.5" value="5">
-      </div>
-      <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">Action</span><span class="slider-value" id="action-val">5</span></div>
-        <input type="range" id="action-score" min="0" max="10" step="0.5" value="5">
-      </div>
-      <div class="slider-row">
-        <div class="slider-header"><span class="slider-label">Fun</span><span class="slider-value" id="fun-val">5</span></div>
-        <input type="range" id="fun-score" min="0" max="10" step="0.5" value="5">
+      <!-- Watchlist Notice (Displayed when status is Want to Watch) -->
+      <div id="watchlist-notice" class="hidden my-4 p-4 bg-white/[0.03] border border-white/[0.08] rounded-kino text-center">
+        <div class="text-lg mb-1">🔖</div>
+        <div class="text-sm font-semibold text-white mb-1">Saved to Watchlist</div>
+        <div class="text-xs text-kino-secondary max-w-md mx-auto">
+          Scoring sliders and personal bias are hidden for Watchlist items. You can rate this film once you have watched it.
+        </div>
       </div>
 
-      <div class="section-title">Personal Bias <span class="optional">(subjective nudges)</span></div>
-      <div class="text-xs text-kino-muted mb-3" style="line-height:1.6">
-        Bias values are <strong style="color:var(--text-secondary)">dampened</strong> — they push the final score without overriding your craft ratings.
-        Each <strong style="color:var(--kino-accent-light, #a78bfa)">+4 total bias = +1.0</strong> to final score (divided across your 4 criteria).
-        Watch the <em>Final</em> score below update live as you add biases.
-      </div>
-      <div id="bias-container"></div>
-      
-      <div class="flex items-center justify-between flex-wrap gap-2 mt-2">
-        <button type="button" class="add-bias-btn" id="add-bias-btn">+ Add bias entry</button>
-      </div>
+      <!-- Scoring and Bias Section (Hidden when in Watchlist status) -->
+      <div id="scoring-section">
+        <div class="section-title">Scores</div>
+        <div class="slider-row">
+          <div class="slider-header"><span class="slider-label">Story</span><span class="slider-value" id="story-val">5</span></div>
+          <input type="range" id="story-score" min="0" max="10" step="0.5" value="5">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span class="slider-label">Visuals</span><span class="slider-value" id="visuals-val">5</span></div>
+          <input type="range" id="visuals-score" min="0" max="10" step="0.5" value="5">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span class="slider-label">Action</span><span class="slider-value" id="action-val">5</span></div>
+          <input type="range" id="action-score" min="0" max="10" step="0.5" value="5">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span class="slider-label">Fun</span><span class="slider-value" id="fun-val">5</span></div>
+          <input type="range" id="fun-score" min="0" max="10" step="0.5" value="5">
+        </div>
 
-      <!-- Quick Bias Presets -->
-      <div class="mt-3 mb-2 p-2.5 bg-white/[0.02] border border-white/[0.05] rounded-kino">
-        <div class="text-xs text-kino-muted mb-1.5 font-medium">⚡ Quick presets — click to add:</div>
-        <div class="text-xs text-kino-muted mb-2 opacity-70" style="font-style:italic">Numbers are bias weights, not direct score additions. Final impact shown live below.</div>
-        <div class="flex flex-wrap gap-1.5" id="bias-presets">
-          <button type="button" class="preset-chip positive-preset" data-amount="1" data-reason="Peak Soundtrack" title="+1 weight → nudges final score up">🎵 Soundtrack</button>
-          <button type="button" class="preset-chip positive-preset" data-amount="1" data-reason="Great Ending" title="+1 weight → nudges final score up">🎯 Great Ending</button>
-          <button type="button" class="preset-chip positive-preset" data-amount="1" data-reason="Plot Twist" title="+1 weight → nudges final score up">🌀 Plot Twist</button>
-          <button type="button" class="preset-chip positive-preset" data-amount="2" data-reason="Pure Cinema" title="+2 weight → stronger nudge up">🎬 Pure Cinema</button>
-          <button type="button" class="preset-chip positive-preset" data-amount="2" data-reason="Nostalgia" title="+2 weight → stronger nudge up">💛 Nostalgia</button>
-          <button type="button" class="preset-chip negative-preset" data-amount="-1" data-reason="Slow Pacing" title="-1 weight → nudges final score down">🐢 Slow Pacing</button>
-          <button type="button" class="preset-chip negative-preset" data-amount="-1" data-reason="Weak Dialogue" title="-1 weight → nudges final score down">💬 Weak Dialogue</button>
-          <button type="button" class="preset-chip negative-preset" data-amount="-2" data-reason="Plot Holes" title="-2 weight → stronger nudge down">🕳️ Plot Holes</button>
-          <button type="button" class="preset-chip negative-preset" data-amount="-2" data-reason="Overhyped" title="-2 weight → stronger nudge down">📢 Overhyped</button>
+        <div class="section-title">Personal Bias <span class="optional">(subjective nudges)</span></div>
+        <div class="text-xs text-kino-muted mb-3" style="line-height:1.6">
+          Bias values are <strong style="color:var(--text-secondary)">dampened</strong> — they push the final score without overriding your craft ratings.
+          Each <strong style="color:var(--kino-accent-light, #a78bfa)">+4 total bias = +1.0</strong> to final score (divided across your 4 criteria).
+          Watch the <em>Final</em> score below update live as you add biases.
+        </div>
+        <div id="bias-container"></div>
+        
+        <div class="flex items-center justify-between flex-wrap gap-2 mt-2">
+          <button type="button" class="add-bias-btn" id="add-bias-btn">+ Add bias entry</button>
+        </div>
+
+        <!-- Quick Bias Presets -->
+        <div class="mt-3 mb-2 p-2.5 bg-white/[0.02] border border-white/[0.05] rounded-kino">
+          <div class="text-xs text-kino-muted mb-1.5 font-medium">⚡ Quick presets — click to add:</div>
+          <div class="text-xs text-kino-muted mb-2 opacity-70" style="font-style:italic">Numbers are bias weights, not direct score additions. Final impact shown live below.</div>
+          <div class="flex flex-wrap gap-1.5" id="bias-presets">
+            <button type="button" class="preset-chip positive-preset" data-amount="1" data-reason="Peak Soundtrack" title="+1 weight → nudges final score up">🎵 Soundtrack</button>
+            <button type="button" class="preset-chip positive-preset" data-amount="1" data-reason="Great Ending" title="+1 weight → nudges final score up">🎯 Great Ending</button>
+            <button type="button" class="preset-chip positive-preset" data-amount="1" data-reason="Plot Twist" title="+1 weight → nudges final score up">🌀 Plot Twist</button>
+            <button type="button" class="preset-chip positive-preset" data-amount="2" data-reason="Pure Cinema" title="+2 weight → stronger nudge up">🎬 Pure Cinema</button>
+            <button type="button" class="preset-chip positive-preset" data-amount="2" data-reason="Nostalgia" title="+2 weight → stronger nudge up">💛 Nostalgia</button>
+            <button type="button" class="preset-chip negative-preset" data-amount="-1" data-reason="Slow Pacing" title="-1 weight → nudges final score down">🐢 Slow Pacing</button>
+            <button type="button" class="preset-chip negative-preset" data-amount="-1" data-reason="Weak Dialogue" title="-1 weight → nudges final score down">💬 Weak Dialogue</button>
+            <button type="button" class="preset-chip negative-preset" data-amount="-2" data-reason="Plot Holes" title="-2 weight → stronger nudge down">🕳️ Plot Holes</button>
+            <button type="button" class="preset-chip negative-preset" data-amount="-2" data-reason="Overhyped" title="-2 weight → stronger nudge down">📢 Overhyped</button>
+          </div>
+        </div>
+
+        <div class="score-preview" id="score-preview">
+          <div>
+            <div class="score-label">Calculated score</div>
+            <div class="score-breakdown" id="score-breakdown">Base 5.0 &nbsp;·&nbsp; Bias +0 &nbsp;=&nbsp; Final</div>
+          </div>
+          <div class="score-big" id="score-final">5.0</div>
         </div>
       </div>
 
@@ -143,14 +200,6 @@
           <div class="tag-suggestions hidden" id="tag-suggestions"></div>
         </div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:6px">Use tags like <em>rewatchable</em>, <em>sci-fi</em>, <em>seen-with-friends</em> to filter later</div>
-      </div>
-
-      <div class="score-preview" id="score-preview">
-        <div>
-          <div class="score-label">Calculated score</div>
-          <div class="score-breakdown" id="score-breakdown">Base 5.0 &nbsp;·&nbsp; Bias +0 &nbsp;=&nbsp; Final</div>
-        </div>
-        <div class="score-big" id="score-final">5.0</div>
       </div>
 
       <div class="form-actions">

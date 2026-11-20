@@ -42,6 +42,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const genresInput = document.getElementById('genres');
   const runtimeInput = document.getElementById('runtime');
 
+  // Status & Duplicate Elements (v0.4)
+  const statusInput = document.getElementById('movie-status');
+  const statusButtons = document.querySelectorAll('#status-button-group .status-btn');
+  const scoringSection = document.getElementById('scoring-section');
+  const watchlistNotice = document.getElementById('watchlist-notice');
+  const duplicateBox = document.getElementById('duplicate-warning-box');
+  const duplicateText = document.getElementById('duplicate-warning-text');
+  const duplicateLink = document.getElementById('duplicate-view-link');
+  const duplicateDismiss = document.getElementById('duplicate-dismiss-btn');
+
   // Tag Elements
   const tagInputArea = document.getElementById('tag-input-area');
   const tagInputField = document.getElementById('tag-input-field');
@@ -156,6 +166,80 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   // ─────────────────────────────────────────────────────
 
+  // ─── Status Selector (v0.4) ───────────────────────────
+  function setStatus(newStatus) {
+    if (statusInput) statusInput.value = newStatus;
+    statusButtons.forEach(btn => {
+      const isActive = btn.dataset.status === newStatus;
+      if (isActive) {
+        btn.className = 'status-btn active px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kino-accent text-white transition flex items-center gap-1.5 cursor-pointer';
+      } else {
+        btn.className = 'status-btn px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/[0.04] text-kino-secondary hover:text-white border border-white/[0.08] transition flex items-center gap-1.5 cursor-pointer';
+      }
+    });
+
+    const isWatchlist = newStatus === 'watchlist';
+    if (scoringSection) scoringSection.classList.toggle('hidden', isWatchlist);
+    if (watchlistNotice) watchlistNotice.classList.toggle('hidden', !isWatchlist);
+  }
+
+  statusButtons.forEach(btn => {
+    btn.addEventListener('click', () => setStatus(btn.dataset.status));
+  });
+
+  // ─── Duplicate Review Guard (v0.4) ───────────────────
+  let currentDuplicate = null;
+  let duplicateDismissedFor = null;
+
+  async function checkDuplicate(tmdbId, title, year) {
+    const cleanTitle = (title || '').trim();
+    if (!tmdbId && cleanTitle.length < 2) {
+      hideDuplicateWarning();
+      return;
+    }
+
+    const key = `${tmdbId || ''}_${cleanTitle.toLowerCase()}_${year || ''}`;
+    if (duplicateDismissedFor === key) return;
+
+    const editId = mode === 'edit' ? document.getElementById('movie-id')?.value : null;
+    const dup = await MovieService.findDuplicate({ tmdbId, title: cleanTitle, year, excludeId: editId });
+
+    if (dup) {
+      currentDuplicate = dup;
+      if (duplicateBox && duplicateText && duplicateLink) {
+        const scoreStr = dup.finalScore !== undefined && dup.finalScore !== null ? ` (Score: ${dup.finalScore} / 10)` : '';
+        const dateStr = dup.createdAt ? ` on ${new Date(dup.createdAt).toLocaleDateString()}` : '';
+        const statusBadge = dup.status === 'watchlist' ? ' [In Watchlist]' : '';
+        duplicateText.innerHTML = `You already logged <strong class="text-white">${escapeHtml(dup.title)} (${dup.year || '—'})</strong>${statusBadge}${dateStr}${scoreStr} in your collection.`;
+        duplicateLink.href = `view.html?id=${dup.id}`;
+        duplicateBox.classList.remove('hidden');
+      }
+    } else {
+      hideDuplicateWarning();
+    }
+  }
+
+  function hideDuplicateWarning() {
+    currentDuplicate = null;
+    if (duplicateBox) duplicateBox.classList.add('hidden');
+  }
+
+  duplicateDismiss?.addEventListener('click', () => {
+    const tId = tmdbIdInput?.value;
+    const t = titleInput?.value;
+    const y = yearInput?.value;
+    duplicateDismissedFor = `${tId || ''}_${(t || '').trim().toLowerCase()}_${y || ''}`;
+    hideDuplicateWarning();
+  });
+
+  // Check duplicate on manual title / year blur
+  titleInput?.addEventListener('blur', () => {
+    checkDuplicate(tmdbIdInput?.value, titleInput.value, yearInput?.value);
+  });
+  yearInput?.addEventListener('blur', () => {
+    checkDuplicate(tmdbIdInput?.value, titleInput.value, yearInput?.value);
+  });
+
   // If edit mode, load existing movie
   if (mode === 'edit') {
     const id = new URLSearchParams(window.location.search).get('id');
@@ -193,6 +277,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load existing tags
     (movie.tags || []).forEach(t => addTag(t));
+
+    // Load existing status (v0.4)
+    if (movie.status) {
+      setStatus(movie.status);
+    }
   }
 
   // TMDB API Key settings button — hidden if no longer needed, kept for legacy HTML
@@ -302,6 +391,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     updateScore();
+
+    // Check for existing duplicate in user's library (v0.4)
+    checkDuplicate(movie.id, movie.title, movie.release_date ? movie.release_date.substring(0, 4) : null);
   }
 
   // Clear preview listener
@@ -316,6 +408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (genresInput) genresInput.value = '';
       if (runtimeInput) runtimeInput.value = '';
       if (tmdbSearchInput) tmdbSearchInput.value = '';
+      hideDuplicateWarning();
     });
   }
 
@@ -459,6 +552,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } catch (err) {}
 
+    const status = statusInput ? statusInput.value : 'completed';
+    const isWatchlist = status === 'watchlist';
+
     const movieData = {
       title,
       year,
@@ -469,12 +565,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       runtime: runtimeInput && runtimeInput.value ? parseInt(runtimeInput.value) : null,
       tmdbId: tmdbIdInput && tmdbIdInput.value ? parseInt(tmdbIdInput.value) : null,
       reviewText: reviewInput.value.trim(),
-      storyScore: parseFloat(storySlider.value),
-      visualScore: parseFloat(visualsSlider.value),
-      actionScore: parseFloat(actionSlider.value),
-      funScore: parseFloat(funSlider.value),
-      biases: getBiases(),
-      tags: getTags()
+      storyScore: isWatchlist ? 0 : parseFloat(storySlider.value),
+      visualScore: isWatchlist ? 0 : parseFloat(visualsSlider.value),
+      actionScore: isWatchlist ? 0 : parseFloat(actionSlider.value),
+      funScore: isWatchlist ? 0 : parseFloat(funSlider.value),
+      biases: isWatchlist ? [] : getBiases(),
+      tags: getTags(),
+      status
     };
     
     if (mode === 'edit') {

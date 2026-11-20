@@ -31,6 +31,19 @@
       </div>
 
       <div class="matrix-toolbar">
+        <!-- Lens Switcher (v0.4) -->
+        <div class="tier-view-toggle" id="matrix-lens-toggle" role="group" aria-label="Matrix lens mode">
+          <button type="button" class="tier-view-btn active" data-lens="classic" id="lens-classic" title="Classic: Craft Quality vs Entertainment">
+            <span>✨ Classic</span>
+          </button>
+          <button type="button" class="tier-view-btn" data-lens="story" id="lens-story" title="Story Depth vs Pure Fun">
+            <span>📖 Story × Fun</span>
+          </button>
+          <button type="button" class="tier-view-btn" data-lens="rare" id="lens-rare" title="Focused 3–10 range with center at 6.5">
+            <span>🧪 Focused (3–10)</span>
+          </button>
+        </div>
+
         <a href="tiers.html" class="matrix-filter-btn inline-flex items-center gap-1.5 no-underline" title="Switch to Tier List View">
           <span>🏆</span><span>Tier List ↗</span>
         </a>
@@ -82,15 +95,15 @@
       <!-- Top Axis Header -->
       <div class="matrix-axis-label-top">
         <span class="axis-icon">▲</span>
-        <span class="axis-title">High Entertainment</span>
-        <span class="axis-formula">avg(Action + Fun)</span>
+        <span class="axis-title" id="axis-label-top-title">High Entertainment</span>
+        <span class="axis-formula" id="axis-label-top-formula">avg(Action + Fun)</span>
       </div>
 
       <div class="matrix-main-row">
         <!-- Left Axis Label -->
         <div class="matrix-axis-label-left">
           <span class="axis-icon">◀</span>
-          <span class="axis-title">Low Quality</span>
+          <span class="axis-title" id="axis-label-left-title">Low Quality</span>
         </div>
 
         <!-- The Coordinate Plane -->
@@ -99,26 +112,26 @@
           <!-- 4 Quadrant Background Panels -->
           <div class="matrix-quadrant quad-tl">
             <div class="quadrant-watermark">
-              <span class="quad-title">Guilty Pleasures</span>
-              <span class="quad-desc">Low Craft · High Fun</span>
+              <span class="quad-title" id="quad-title-tl">Guilty Pleasures</span>
+              <span class="quad-desc" id="quad-desc-tl">Low Craft · High Fun</span>
             </div>
           </div>
           <div class="matrix-quadrant quad-tr">
             <div class="quadrant-watermark">
-              <span class="quad-title">Peak Cinema</span>
-              <span class="quad-desc">High Craft · High Fun</span>
+              <span class="quad-title" id="quad-title-tr">Peak Cinema</span>
+              <span class="quad-desc" id="quad-desc-tr">High Craft · High Fun</span>
             </div>
           </div>
           <div class="matrix-quadrant quad-bl">
             <div class="quadrant-watermark">
-              <span class="quad-title">Duds & Skips</span>
-              <span class="quad-desc">Low Craft · Low Fun</span>
+              <span class="quad-title" id="quad-title-bl">Duds & Skips</span>
+              <span class="quad-desc" id="quad-desc-bl">Low Craft · Low Fun</span>
             </div>
           </div>
           <div class="matrix-quadrant quad-br">
             <div class="quadrant-watermark">
-              <span class="quad-title">Slow Burns & Prestige</span>
-              <span class="quad-desc">High Craft · Low Fun</span>
+              <span class="quad-title" id="quad-title-br">Slow Burns & Prestige</span>
+              <span class="quad-desc" id="quad-desc-br">High Craft · Low Fun</span>
             </div>
           </div>
 
@@ -126,11 +139,11 @@
           <div class="matrix-axis-line axis-x"></div>
           <div class="matrix-axis-line axis-y"></div>
 
-          <div class="matrix-tick tick-center">5.0</div>
-          <div class="matrix-tick tick-x-min">0</div>
-          <div class="matrix-tick tick-x-max">10</div>
-          <div class="matrix-tick tick-y-min">0</div>
-          <div class="matrix-tick tick-y-max">10</div>
+          <div class="matrix-tick tick-center" id="tick-center">5.0</div>
+          <div class="matrix-tick tick-x-min" id="tick-x-min">0</div>
+          <div class="matrix-tick tick-x-max" id="tick-x-max">10</div>
+          <div class="matrix-tick tick-y-min" id="tick-y-min">0</div>
+          <div class="matrix-tick tick-y-max" id="tick-y-max">10</div>
 
           <!-- Plotted Pins Layer -->
           <div class="matrix-plot-area" id="matrix-plot-area"></div>
@@ -141,8 +154,8 @@
 
         <!-- Right Axis Label -->
         <div class="matrix-axis-label-right">
-          <span class="axis-title">High Quality</span>
-          <span class="axis-formula">avg(Story + Visuals)</span>
+          <span class="axis-title" id="axis-label-right-title">High Quality</span>
+          <span class="axis-formula" id="axis-label-right-formula">avg(Story + Visuals)</span>
           <span class="axis-icon">▶</span>
         </div>
       </div>
@@ -150,7 +163,7 @@
       <!-- Bottom Axis Footer -->
       <div class="matrix-axis-label-bottom">
         <span class="axis-icon">▼</span>
-        <span class="axis-title">Low Entertainment</span>
+        <span class="axis-title" id="axis-label-bottom-title">Low Entertainment</span>
       </div>
 
       <!-- Matrix Legend -->
