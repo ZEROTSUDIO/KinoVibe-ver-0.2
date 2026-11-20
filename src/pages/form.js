@@ -427,7 +427,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
     
     const biasPrefix = scores.totalBias >= 0 ? '+' : '';
-    scoreBreakdownEl.innerHTML = `Base ${formatScore(scores.base)} &nbsp;·&nbsp; Bias ${biasPrefix}${scores.totalBias} &nbsp;=&nbsp; Final`;
+    // Show both the raw bias weight and its actual dampened effect on the final score
+    const actualEffect = Math.round((scores.final - scores.base) * 10) / 10;
+    const effectPrefix = actualEffect >= 0 ? '+' : '';
+    const biasNote = scores.totalBias !== 0
+      ? `Bias weight ${biasPrefix}${scores.totalBias} <span style="opacity:0.55">(effect: ${effectPrefix}${actualEffect.toFixed(1)})</span> &nbsp;=&nbsp; Final`
+      : `No bias &nbsp;=&nbsp; Final`;
+    scoreBreakdownEl.innerHTML = `Base ${formatScore(scores.base)} &nbsp;·&nbsp; ${biasNote}`;
     scoreFinalEl.textContent = formatScore(scores.final);
     
     // Update score color with glow
